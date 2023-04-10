@@ -40,6 +40,10 @@ const projectsSchema = new mongoose.Schema({
       required: true,
       default: Date.now
     }
+  }],
+  stages: [{
+    type: mongoose.Types.ObjectId,
+    ref: 'Stages'
   }]
 })
 
