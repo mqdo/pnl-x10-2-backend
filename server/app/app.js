@@ -6,6 +6,8 @@ require('dotenv').config();
 const app = express();
 
 const authRoute = require('./routes/auth.js');
+const projectRoute = require('./routes/project.js');
+const { authenticate } = require('./middleware/auth.js');
 
 app.use(cors({
   origin: '*'
@@ -21,5 +23,6 @@ app.get('/', (req, res) => {
 });
 
 app.use('/auth', authRoute);
+app.use('/project', authenticate, projectRoute);
 
 module.exports = app;
