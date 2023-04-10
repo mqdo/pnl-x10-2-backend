@@ -41,10 +41,6 @@ const usersSchema = new mongoose.Schema({
     default: 'default',
     required: true
   },
-  projects: [{
-    type: mongoose.Types.ObjectId,
-    ref: 'Projects'
-  }]
 })
 
 module.exports = mongoose.model('Users', usersSchema)
