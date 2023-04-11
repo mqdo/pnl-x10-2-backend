@@ -10,6 +10,10 @@ const projectsSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  createdDate: {
+    type: Date,
+    default: Date.now
+  },
   startDate: {
     type: Date,
     required: true

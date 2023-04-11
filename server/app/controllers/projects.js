@@ -4,6 +4,7 @@ const Projects = require('../models/Projects.js');
 
 const getAll = async (req, res) => {
   // console.log(req?.user);
+  let page = req?.queries?.page || 1;
   try {
     let userId = new ObjectId(req?.user?.id);
     // console.log(userId);
@@ -12,7 +13,10 @@ const getAll = async (req, res) => {
         path: 'members.data',
         options: { allowEmptyArray: true },
         select: '_id fullName email avatar'
-      }).lean()
+      })
+      .sort({ createdDate: -1 })
+      .limit(10)
+      .skip(10 * (page - 1))
     // .populate({ path: 'stages', options: { allowEmptyArray: true } });
 
     return res.status(200).json({ projects: projects, n: projects.length });
@@ -22,7 +26,7 @@ const getAll = async (req, res) => {
   }
 };
 const search = async (req, res) => {
-  const { name, status } = req.query;
+  const { name = false, status = false, page = 1 } = req.query;
   try {
     let userId = new ObjectId(req?.user?.id);
     let projects = [];
@@ -33,11 +37,15 @@ const search = async (req, res) => {
         'name': {
           '$regex': name
         }
-      }).populate({
-        path: 'members.data',
-        options: { allowEmptyArray: true },
-        select: '_id fullName email avatar'
-      }).lean()
+      })
+        .populate({
+          path: 'members.data',
+          options: { allowEmptyArray: true },
+          select: '_id fullName email avatar'
+        })
+        .sort({ createdDate: -1 })
+        .limit(10)
+        .skip(10 * (page - 1))
       // .populate({ path: 'stages', options: { allowEmptyArray: true } });
     } else if (status) {
       projects = await Projects.find({
