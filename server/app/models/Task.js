@@ -2,9 +2,6 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const TaskSchema = new Schema({
-    taskid: { 
-        type: String, 
-        required: true },
     title: { 
         type: String, 
         required: true },

@@ -6,6 +6,7 @@ require('dotenv').config();
 const app = express();
 
 const authRoute = require('./routes/auth.js');
+const stagesRoute = require("./routes/stagesR.js")
 
 app.use(cors({
   origin: '*'
@@ -21,5 +22,5 @@ app.get('/', (req, res) => {
 });
 
 app.use('/auth', authRoute);
-
+app.use('/stages', stagesRoute);
 module.exports = app;
