@@ -10,7 +10,7 @@ const secretKey = process.env.JWT_SECRET_KEY;
 const login = async (req, res) => {
   const { credential, password, rememberMe = false } = req.body;
   if (!credential || !password) {
-    return res.status(401).json({ message: 'Username (or email) and password must be provided' });
+    return res.status(400).json({ message: 'Username (or email) and password must be provided' });
   }
   let user;
   try {
