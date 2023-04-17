@@ -25,16 +25,17 @@ const login = async (req, res) => {
     if (!bcrypt.compareSync(password, user.password)) {
       return res.status(401).json({ message: 'Password mismatch' });
     }
-    const duration = rememberMe ? '30d' : '1d'
+    const duration = rememberMe ? '30d' : '1d';
     const token = jwt.sign({
       id: user._id,
       fullName: user.fullName
     }, secretKey, {
       expiresIn: duration
-    })
-    return res.status(200).json({ 'message': 'Login successfully', 'token': token });
+    });
+    let { '_doc': { password: userPassword, ...data } } = user;
+    return res.status(200).json({ 'message': 'Login successfully', token, data });
   } catch (err) {
-    return res.status(500).json({ message: err.message || 'Something went wrong!' });
+    return res.status(500).json({ message: 'Error: ' + err.message || 'Something went wrong!' });
   }
 };
 const signup = async (req, res) => {
@@ -66,7 +67,8 @@ const signup = async (req, res) => {
     }, secretKey, {
       expiresIn: duration
     })
-    return res.status(200).json({ 'message': 'Signup successfully', 'token': token });
+    let { '_doc': { password: userPassword, ...data } } = user;
+    return res.status(200).json({ 'message': 'Signup successfully', token, data });
   } catch (err) {
     return res.status(500).json({ message: err.message || 'Something went wrong!' });
   }
