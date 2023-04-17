@@ -1,10 +1,13 @@
 const mongoose = require('mongoose');
 
+const generateCode = require('../../config/generateCode.js');
+
 const projectsSchema = new mongoose.Schema({
   code: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    default: generateCode
   },
   name: {
     type: String,
@@ -49,6 +52,13 @@ const projectsSchema = new mongoose.Schema({
     type: mongoose.Types.ObjectId,
     ref: 'Stages'
   }]
+});
+
+projectsSchema.pre('save', (next) => {
+  if (!this.code) {
+    this.code = generateCode();
+  }
+  next();
 })
 
 module.exports = mongoose.model('Projects', projectsSchema)
