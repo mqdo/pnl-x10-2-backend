@@ -3,8 +3,13 @@ const express = require('express');
 const router = express.Router();
 
 
-const {addStage} = require("../controllers/stages.js")
+const {addStage,searchnameStage} = require("../controllers/stages.js")
 
-router.get("./addStage",addStage)
+
+router.post("/search",searchnameStage)
+
+router.post("/addstage",addStage)
+router.post("/addstage",addStage)
+
 
 module.exports = router;

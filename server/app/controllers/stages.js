@@ -9,6 +9,7 @@ exports.searchnameStage = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 exports.addStage = async (req, res) => {
   const { name, startDate, endDateExpected, endDateActual, evaluations } = req.body;
   const stages = StageSchema({
@@ -23,14 +24,14 @@ exports.addStage = async (req, res) => {
       !name ||
       !startDate ||
       !endDateExpected ||
-      !endDateActual ||
-      !evaluations
+      !endDateActual 
+     
     ) {
       return res.status(400).json({ message: "All fields are required!" });
     }
     await stages.save()
     res.status(200).json(stages);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: err.message }); 
   }
 };
