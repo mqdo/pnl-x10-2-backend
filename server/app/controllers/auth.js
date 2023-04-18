@@ -41,7 +41,7 @@ const login = async (req, res) => {
 const signup = async (req, res) => {
   const { fullName, email, username, password, rememberMe = false } = req.body;
   if (!fullName || !email || !username || !password) {
-    return res.status(401).json({ message: 'All fields must be provided' });
+    return res.status(400).json({ message: 'All fields must be provided' });
   }
   try {
     let emailExisted = await Users.findOne({ email: email });
