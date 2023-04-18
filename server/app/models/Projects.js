@@ -1,10 +1,14 @@
 const mongoose = require('mongoose');
 
+const generateCode = require('../../config/generateCode.js');
+
 const projectsSchema = new mongoose.Schema({
   code: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    immutable: true,
+    default: generateCode
   },
   name: {
     type: String,
@@ -12,6 +16,7 @@ const projectsSchema = new mongoose.Schema({
   },
   createdDate: {
     type: Date,
+    immutable: true,
     default: Date.now
   },
   startDate: {
@@ -42,13 +47,23 @@ const projectsSchema = new mongoose.Schema({
     joiningDate: {
       type: Date,
       required: true,
-      default: Date.now
-    }
+      default: Date.now,
+      immutable: true,
+    },
+    _id: false
   }],
   stages: [{
     type: mongoose.Types.ObjectId,
-    ref: 'Stages'
+    ref: 'Stages',
+    _id: false
   }]
+});
+
+projectsSchema.pre('save', (next) => {
+  if (!this.code) {
+    this.code = generateCode();
+  }
+  next();
 })
 
 module.exports = mongoose.model('Projects', projectsSchema)
