@@ -7,6 +7,7 @@ const projectsSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
+    immutable: true,
     default: generateCode
   },
   name: {
@@ -15,6 +16,7 @@ const projectsSchema = new mongoose.Schema({
   },
   createdDate: {
     type: Date,
+    immutable: true,
     default: Date.now
   },
   startDate: {
@@ -46,11 +48,13 @@ const projectsSchema = new mongoose.Schema({
       type: Date,
       required: true,
       default: Date.now
-    }
+    },
+    _id: false
   }],
   stages: [{
     type: mongoose.Types.ObjectId,
-    ref: 'Stages'
+    ref: 'Stages',
+    _id: false
   }]
 });
 
