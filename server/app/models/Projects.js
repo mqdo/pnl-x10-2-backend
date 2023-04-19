@@ -30,8 +30,8 @@ const projectsSchema = new mongoose.Schema({
   description: String,
   status: {
     type: String,
-    enum: ['open', 'ongoing', 'suspended', 'completed'],
-    default: 'open',
+    enum: ['preparing', 'ongoing', 'suspended', 'completed'],
+    default: 'preparing',
     required: true
   },
   members: [{
