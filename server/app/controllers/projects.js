@@ -4,7 +4,7 @@ const Projects = require('../models/Projects.js');
 const Users = require('../models/Users.js');
 const memberRoles = require('../../config/memberRoles.js');
 
-const allowedStatuses = ['open', 'ongoing', 'suspended', 'completed'];
+const allowedStatuses = ['preparing', 'ongoing', 'suspended', 'completed'];
 // const allowedRoles = ['manager', 'leader', 'member', 'supervisor'];
 
 const getAllProjects = async (req, res) => {
@@ -109,7 +109,7 @@ const createNewProject = async (req, res) => {
       startDate: new Date(startDate),
       estimatedEndDate: new Date(estimatedEndDate),
       description: description,
-      status: allowedStatuses.includes(status) ? status : 'open'
+      status: allowedStatuses.includes(status) ? status : 'preparing'
     });
     project.members.push({
       data: userId,
