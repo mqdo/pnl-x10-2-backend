@@ -28,7 +28,7 @@ exports.upload = multer({ storage, limits: { fileSize: 4000000 } });
 const app = express();
 
 const authRoute = require('./routes/auth.js');
-const stagesRoute = require("./routes/stagesR.js")
+const stageRoute = require("./routes/stagesR.js")
 const projectRoute = require('./routes/projects.js');
 const userRoute = require('./routes/users.js');
 const { authenticate } = require('./middleware/auth.js');
@@ -47,7 +47,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/auth', authRoute);
-app.use('/stages', authenticate, stagesRoute);
+app.use('/stage', authenticate, stageRoute);
 app.use('/user', authenticate, userRoute);
 app.use('/project', authenticate, projectRoute);
 

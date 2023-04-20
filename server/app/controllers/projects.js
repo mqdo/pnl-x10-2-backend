@@ -9,8 +9,8 @@ const allowedStatuses = ['preparing', 'ongoing', 'suspended', 'completed'];
 
 const getAllProjects = async (req, res) => {
   // console.log(req?.user);
-  const page = req?.queries?.page || 1;
-  const limit = req?.queries?.limit || 10;
+  const page = parseInt(req?.queries?.page) || 1;
+  const limit = parseInt(req?.queries?.limit) || 10;
   try {
     const userId = new ObjectId(req?.user?.id);
     // console.log(userId);
@@ -165,6 +165,26 @@ const updateProject = async (req, res) => {
     return res.status(400).json({ message: err.message || 'Bad request' });
   }
 };
+const deleteProject = async (req, res) => {
+  const { id } = req.params;
+  try {
+    let userId = new ObjectId(req?.user?.id);
+    let project = await Projects.findById(id);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    let isAuthorized = project?.members.some((member) => member?.data.equals(userId) && (member?.role === 'manager' || member?.role === 'leader'));
+    if (!isAuthorized) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    await Projects.findByIdAndDelete(id);
+    return res.status(200).json({
+      message: 'Project deleted successfully'
+    });
+  } catch (err) {
+    return res.status(400).json({ message: err.message || 'Bad request' });
+  }
+};
 const getProjectDetails = async (req, res) => {
   const { id } = req.params;
   if (!id) {
@@ -195,12 +215,12 @@ const getMembersList = async (req, res) => {
       .populate({
         path: 'members.data',
         options: { allowEmptyArray: true },
-        select: '_id fullName email avatar'
+        select: '_id fullName email avatar username'
       });
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
-    let isMember = project?.members.some((member) => member?.data.equals(userId));
+    let isMember = project?.members.some((member) => member?.data?._id?.equals(userId));
     if (!isMember) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -221,7 +241,7 @@ const addNewMembers = async (req, res) => {
       .populate({
         path: 'members.data',
         options: { allowEmptyArray: true },
-        select: '_id fullName email avatar'
+        select: '_id fullName email avatar username'
       });
     let roles = memberRoles(project?.members);
     if (!project) {
@@ -309,7 +329,7 @@ const removeMember = async (req, res) => {
       .populate({
         path: 'members.data',
         options: { allowEmptyArray: true },
-        select: '_id fullName email avatar'
+        select: '_id fullName email avatar username'
       });
 
     return res.status(200).json({
@@ -320,15 +340,42 @@ const removeMember = async (req, res) => {
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Bad request' });
   }
-}
+};
+const getStagesList = async (req, res) => {
+  const { id } = req.params;
+  let userId = new ObjectId(req?.user?.id);
+  try {
+    let project = await Projects.findById(id)
+      .populate({
+        path: 'stages',
+        options: { allowEmptyArray: true }
+      });
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    let isMember = project?.members.some((member) => member?.data.equals(userId));
+    if (!isMember) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    project.stages.tasks = undefined;
+    return res.status(200).json({
+      projectId: project._id,
+      stages: project.stages
+    });
+  } catch (err) {
+    return res.status(400).json({ message: err.message || 'Bad request' });
+  }
+};
 
 module.exports = {
   getAllProjects,
   searchProjects,
   createNewProject,
   updateProject,
+  deleteProject,
   getProjectDetails,
   getMembersList,
   addNewMembers,
-  removeMember
+  removeMember,
+  getStagesList
 };
