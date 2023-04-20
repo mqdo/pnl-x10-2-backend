@@ -17,9 +17,9 @@ const stageSchema = new Schema({
     endDateActual: {
         type: Date
     },
-    evaluations: [{
+    reviews: [{
         content: String,
-        evaluator: {
+        reviewer: {
             type: Schema.Types.ObjectId,
             ref: 'Users'
         },
