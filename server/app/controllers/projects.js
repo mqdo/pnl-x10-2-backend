@@ -347,14 +347,19 @@ const updateMember = async (req, res) => {
         }
         m.role = newRole;
         m.joiningDate = new Date(member.joiningDate);
-        console.log(new Date(member.joiningDate));
       }
     }
     await project.save();
+    const newProject = await Projects.findById(id)
+      .populate({
+        path: 'members.data',
+        options: { allowEmptyArray: true },
+        select: '_id fullName email avatar username'
+      });
     return res.status(200).json({
       message: 'Update member successfully',
       projectId: project._id,
-      members: project.members
+      members: newProject.members
     });
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Bad request' });
