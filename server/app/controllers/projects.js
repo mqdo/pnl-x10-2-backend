@@ -291,10 +291,16 @@ const addNewMembers = async (req, res) => {
       }
     }
     await project.save();
+    let newProject = await Projects.findById(id)
+      .populate({
+        path: 'members.data',
+        options: { allowEmptyArray: true },
+        select: '_id fullName email avatar username'
+      });
     return res.status(200).json({
       message: 'Add members successfully',
-      projectId: project._id,
-      members: project.members
+      projectId: newProject._id,
+      members: newProject.members
     });
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Bad request' });
@@ -358,7 +364,7 @@ const updateMember = async (req, res) => {
       });
     return res.status(200).json({
       message: 'Update member successfully',
-      projectId: project._id,
+      projectId: newProject._id,
       members: newProject.members
     });
   } catch (err) {
