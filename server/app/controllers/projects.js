@@ -374,15 +374,16 @@ const removeMember = async (req, res) => {
     if (!isManager && !isLeader) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
-    const memberIndex = project.members.findIndex((m) => m?.data?.equals(memberId));
-    if (memberIndex !== -1) {
-      const memberRole = project.members[memberIndex].role;
-      if (
-        isManager ||
-        (isLeader && (memberRole !== 'manager' || memberRole === 'leader'))
-      ) {
-        await project.members.pull({ data: memberId });
-        await project.save();
+    for (const index in project.members) {
+      if (project.members[index]?.data.equals(memberId)) {
+        const memberRole = project.members[index].role;
+        if (
+          isManager ||
+          (isLeader && (memberRole !== 'manager' || memberRole === 'leader'))
+        ) {
+          await project.members.pull({ data: memberId });
+          await project.save();
+        }
       }
     }
     const updatedProject = await Projects.findById(id)
