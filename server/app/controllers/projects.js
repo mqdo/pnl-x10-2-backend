@@ -36,6 +36,40 @@ const getAllProjects = async (req, res) => {
     return res.status(404).json({ message: 'No project found' })
   }
 };
+const getAllProjectsWithDetails = async (req, res) => {
+  try {
+    const userId = new ObjectId(req?.user?.id);
+    // console.log(userId);
+    const total = await Projects.countDocuments({ 'members.data': userId });
+    let projects = await Projects.find({
+      'members.data': userId
+    })
+      .populate({
+        path: 'members.data',
+        options: { allowEmptyArray: true },
+        select: '_id fullName email avatar username'
+      })
+      .populate({
+        path: 'stages',
+        options: { allowEmptyArray: true },
+        select: '_id name'
+      })
+      .populate({
+        path: 'stages.tasks',
+        options: { allowEmptyArray: true },
+        select: '_id title'
+      })
+      .sort({ createdDate: -1 })
+
+    return res.status(200).json({
+      projects,
+      total
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(404).json({ message: 'No project found' })
+  }
+};
 const searchProjects = async (req, res) => {
   const {
     name = false,
@@ -209,6 +243,8 @@ const getProjectDetails = async (req, res) => {
 };
 const getMembersList = async (req, res) => {
   const { id } = req.params;
+  const page = parseInt(req?.queries?.page) || 1;
+  const limit = parseInt(req?.queries?.limit) || 10;
   let userId = new ObjectId(req?.user?.id);
   try {
     let project = await Projects.findById(id)
@@ -224,9 +260,16 @@ const getMembersList = async (req, res) => {
     if (!isMember) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit - 1;
+    const total = project.members.length;
+    const result = project.members.slice(startIndex, endIndex);
     return res.status(200).json({
       projectId: project._id,
-      members: project.members
+      members: result,
+      total: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit)
     });
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Bad request' });
@@ -291,10 +334,16 @@ const addNewMembers = async (req, res) => {
       }
     }
     await project.save();
+    let newProject = await Projects.findById(id)
+      .populate({
+        path: 'members.data',
+        options: { allowEmptyArray: true },
+        select: '_id fullName email avatar username'
+      });
     return res.status(200).json({
       message: 'Add members successfully',
-      projectId: project._id,
-      members: project.members
+      projectId: newProject._id,
+      members: newProject.members
     });
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Bad request' });
@@ -358,7 +407,7 @@ const updateMember = async (req, res) => {
       });
     return res.status(200).json({
       message: 'Update member successfully',
-      projectId: project._id,
+      projectId: newProject._id,
       members: newProject.members
     });
   } catch (err) {
@@ -409,6 +458,8 @@ const removeMember = async (req, res) => {
 };
 const getStagesList = async (req, res) => {
   const { id } = req.params;
+  const page = parseInt(req?.queries?.page) || 1;
+  const limit = parseInt(req?.queries?.limit) || 10;
   let userId = new ObjectId(req?.user?.id);
   try {
     let project = await Projects.findById(id)
@@ -423,10 +474,16 @@ const getStagesList = async (req, res) => {
     if (!isMember) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
-    project.stages.tasks = undefined;
+    const startIndex = (page - 1) * limit;
+    const endIndex = (page * limit) - 1;
+    const total = project.stages.length;
+    const result = project.stages.slice(startIndex, endIndex);
     return res.status(200).json({
       projectId: project._id,
-      stages: project.stages
+      stages: result,
+      total: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit)
     });
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Bad request' });
@@ -435,6 +492,7 @@ const getStagesList = async (req, res) => {
 
 module.exports = {
   getAllProjects,
+  getAllProjectsWithDetails,
   searchProjects,
   createNewProject,
   updateProject,
