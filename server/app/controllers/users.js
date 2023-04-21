@@ -2,6 +2,10 @@ const bcrypt = require('bcrypt');
 const ObjectId = require('mongoose').Types.ObjectId;
 
 const Users = require('../models/Users.js');
+const Projects = require('../models/Projects.js');
+const Stages = require('../models/Stages.js');
+const Tasks = require('../models/Tasks.js');
+const Comments = require('../models/Comments.js');
 const isEmail = require('../../config/isEmail.js');
 
 const basicInfo = {
@@ -140,6 +144,22 @@ const deleteUser = async (req, res) => {
       }
     }
     await Users.findByIdAndDelete(userId);
+    await Projects.updateMany(
+      { 'members.data': userId },
+      { $pull: { members: { data: userId } } }
+    );
+    await Stages.updateMany(
+      { 'reviews.reviewer': userId },
+      { $pull: { reviewers: userId } }
+    );
+    await Tasks.updateMany(
+      { $or: [{ createdBy: userId }, { assignedTo: userId }] },
+      { $unset: { createdBy: userId, assignedTo: userId } }
+    );
+    await Comments.updateMany(
+      { 'commenter': userId },
+      { $pull: { commenter: userId } }
+    );
     return res.status(200).json({ message: 'User delete successfully' });
   } catch (error) {
     console.log(error);

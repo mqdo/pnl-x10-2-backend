@@ -47,8 +47,7 @@ const projectsSchema = new mongoose.Schema({
     joiningDate: {
       type: Date,
       required: true,
-      default: Date.now,
-      immutable: true,
+      default: Date.now
     },
     _id: false
   }],
