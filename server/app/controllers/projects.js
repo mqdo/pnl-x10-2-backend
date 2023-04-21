@@ -9,8 +9,8 @@ const allowedStatuses = ['preparing', 'ongoing', 'suspended', 'completed'];
 
 const getAllProjects = async (req, res) => {
   // console.log(req?.user);
-  const page = parseInt(req?.queries?.page) || 1;
-  const limit = parseInt(req?.queries?.limit) || 10;
+  const page = parseInt(req?.query?.page) || 1;
+  const limit = parseInt(req?.query?.limit) || 10;
   try {
     const userId = new ObjectId(req?.user?.id);
     // console.log(userId);
@@ -243,8 +243,8 @@ const getProjectDetails = async (req, res) => {
 };
 const getMembersList = async (req, res) => {
   const { id } = req.params;
-  const page = parseInt(req?.queries?.page) || 1;
-  const limit = parseInt(req?.queries?.limit) || 10;
+  const page = parseInt(req?.query?.page) || 1;
+  const limit = parseInt(req?.query?.limit) || 10;
   let userId = new ObjectId(req?.user?.id);
   try {
     let project = await Projects.findById(id)
@@ -261,7 +261,7 @@ const getMembersList = async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
     const startIndex = (page - 1) * limit;
-    const endIndex = page * limit - 1;
+    const endIndex = page * limit;
     const total = project.members.length;
     const result = project.members.slice(startIndex, endIndex);
     return res.status(200).json({
@@ -458,8 +458,8 @@ const removeMember = async (req, res) => {
 };
 const getStagesList = async (req, res) => {
   const { id } = req.params;
-  const page = parseInt(req?.queries?.page) || 1;
-  const limit = parseInt(req?.queries?.limit) || 10;
+  const page = parseInt(req?.query?.page) || 1;
+  const limit = parseInt(req?.query?.limit) || 10;
   let userId = new ObjectId(req?.user?.id);
   try {
     let project = await Projects.findById(id)
@@ -475,7 +475,7 @@ const getStagesList = async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
     const startIndex = (page - 1) * limit;
-    const endIndex = (page * limit) - 1;
+    const endIndex = page * limit;
     const total = project.stages.length;
     const result = project.stages.slice(startIndex, endIndex);
     return res.status(200).json({
