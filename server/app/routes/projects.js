@@ -11,6 +11,7 @@ const {
   getProjectDetails,
   getMembersList,
   addNewMembers,
+  updateMember,
   removeMember,
   getStagesList
 } = require('../controllers/projects.js');
@@ -23,6 +24,7 @@ router.post('/update/:id', updateProject);
 router.post('/delete/:id', deleteProject);
 router.get('/members/:id', getMembersList);
 router.post('/members/add/:id', addNewMembers);
+router.post('/members/update/:id', updateMember);
 router.post('/members/remove/:id', removeMember);
 router.get('/stages/:id', getStagesList);
 

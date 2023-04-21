@@ -300,6 +300,66 @@ const addNewMembers = async (req, res) => {
     return res.status(400).json({ message: err.message || 'Bad request' });
   }
 };
+const updateMember = async (req, res) => {
+  const member = req.body;
+  const { id } = req.params;
+  let userId = new ObjectId(req?.user?.id);
+  try {
+    let project = await Projects.findById(id)
+      .populate({
+        path: 'members.data',
+        options: { allowEmptyArray: true },
+        select: '_id fullName email avatar username'
+      });
+    let roles = memberRoles(project?.members);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    let isManager = project?.members.some((member) => (
+      member?.data?._id.equals(userId) &&
+      member?.role === 'manager'
+    ));
+    let isLeader = project?.members.some((member) => (
+      member?.data?._id.equals(userId) &&
+      member?.role === 'leader'
+    ));
+    if (!isManager && !isLeader) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    for (const m of project.members) {
+      if (m.data?._id.equals(member.id)) {
+        let newRole = 'member';
+        switch (member.role) {
+          case 'leader':
+            if (roles.leader < 3) {
+              newRole = 'leader';
+              roles.leader++;
+            }
+            break;
+          case 'supervisor':
+          case 'member':
+            newRole = member.role;
+            roles[member.role]++;
+            break;
+          case 'manager':
+          default:
+            break;
+        }
+        m.role = newRole;
+        m.joiningDate = new Date(member.joiningDate);
+        console.log(new Date(member.joiningDate));
+      }
+    }
+    await project.save();
+    return res.status(200).json({
+      message: 'Update member successfully',
+      projectId: project._id,
+      members: project.members
+    });
+  } catch (err) {
+    return res.status(400).json({ message: err.message || 'Bad request' });
+  }
+};
 const removeMember = async (req, res) => {
   const { id: memberId } = req.body;
   const { id } = req.params;
@@ -376,6 +436,7 @@ module.exports = {
   getProjectDetails,
   getMembersList,
   addNewMembers,
+  updateMember,
   removeMember,
   getStagesList
 };
