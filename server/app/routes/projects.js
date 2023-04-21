@@ -4,6 +4,7 @@ const router = express.Router();
 
 const {
   getAllProjects,
+  getAllProjectsWithDetails,
   searchProjects,
   createNewProject,
   updateProject,
@@ -17,6 +18,7 @@ const {
 } = require('../controllers/projects.js');
 
 router.get('/all', getAllProjects);
+router.get('/all/details', getAllProjectsWithDetails);
 router.get('/search', searchProjects);
 router.get('/details/:id', getProjectDetails);
 router.post('/new', createNewProject);
