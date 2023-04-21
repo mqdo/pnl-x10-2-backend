@@ -314,39 +314,45 @@ exports.updateStage = async (req, res) => {
     if (name) {
       stage.name = name;
     }
-    if (startDate) {
-      const newStartDate = new Date(startDate);
-      const lastEndDate = project.stages.length > 0 ? project.stages[0]?.endDateActual || project.stages[0]?.endDateExpected : 0;
-      const validDate = (newStartDate - lastEndDate) > 0;
-      if (!validDate) {
-        return res.status(400).json({ message: 'New start date must be after last end date', lastEndDate })
-      }
-      stage.startDate = newStartDate;
-    }
-    if (endDateExpected) {
-      const newEndDateExpected = new Date(endDateExpected);
-      const index = project.stages.indexOf(stage._id);
-      if (index > 0) {
-        const nextStartDate = project.stages[index - 1]?.startDate || 0;
-        const validDate = (nextStartDate - newEndDateExpected) > 0;
-        if (!validDate) {
-          return res.status(400).json({ message: 'New expected end date must be before next start date', nextStartDate })
+
+    for (const index in project.stages) {
+      if (project.stages[index].equals(stage._id)) {
+        const nextIndex = parseInt(index) + 1;
+        const prevIndex = parseInt(index) - 1;
+        if (startDate) {
+          const newStartDate = new Date(startDate);
+          const lastEndDate = project.stages[nextIndex]?.endDateActual || project.stages[nextIndex]?.endDateExpected || 0;
+          const validDate = (newStartDate - lastEndDate) > 0;
+          if (!validDate) {
+            return res.status(400).json({ message: 'New start date must be after last end date', lastEndDate })
+          }
+          stage.startDate = newStartDate;
+        }
+        if (endDateExpected) {
+          const newEndDateExpected = new Date(endDateExpected);
+          const nextStartDate = project.stages[prevIndex]?.startDate;
+          const validDate = (nextStartDate ? (nextStartDate - newEndDateExpected) > 0 : true) && (newEndDateExpected - stage.startDate) > 0;
+          if (!validDate) {
+            return res.status(400).json({
+              message: 'New expected end date must be before next start date and after current start date',
+              startDate: nextStartDate || stage.startDate
+            })
+          }
+          stage.endDateExpected = newEndDateExpected;
+        }
+        if (endDateActual) {
+          const newEndDateActual = new Date(endDateActual);
+          const nextStartDate = project.stages[prevIndex]?.startDate;
+          const validDate = (nextStartDate ? (nextStartDate - newEndDateActual) > 0 : true) && (newEndDateActual - stage.startDate) > 0;
+          if (!validDate) {
+            return res.status(400).json({
+              message: 'New actual end date must be before (next) start date and after current start date',
+              startDate: nextStartDate || stage.startDate
+            })
+          }
+          stage.endDateActual = newEndDateActual;
         }
       }
-      stage.endDateExpected = newEndDateExpected;
-    }
-    if (endDateActual) {
-      const newEndDateActual = new Date(endDateActual);
-      const index = project.stages.indexOf(stage._id);
-      if (index > 0) {
-        const nextStartDate = project.stages[index - 1]?.startDate || 0;
-        const validDate = (nextStartDate - newEndDateActual) > 0;
-        if (!validDate) {
-          return res.status(400).json({ message: 'New actual end date must be before next start date', nextStartDate })
-        }
-      }
-      stage.endDateActual = newEndDateActual;
-      stage.endDateExpected = newEndDateActual;
     }
     await stage.save();
     stage.tasks = undefined;
