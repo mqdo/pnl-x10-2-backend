@@ -256,10 +256,9 @@ exports.addStage = async (req, res) => {
     const newStartDate = new Date(startDate);
     const newEndDateExpected = new Date(endDateExpected);
     const lastEndDate = project.stages.length > 0 ? project.stages[0]?.endDateActual || project.stages[0]?.endDateExpected : 0;
-    console.log(lastEndDate);
-    const validDates = (newStartDate - lastEndDate) > 0;
+    const validDates = (newStartDate - lastEndDate) > 0 && (newEndDateExpected - newStartDate) > 0;
     if (!validDates) {
-      return res.status(400).json({ message: 'New start date must be after last end date', lastEndDate })
+      return res.status(400).json({ message: 'New start date must be after last end date and before new expected end date', lastEndDate })
     }
     const stage = new Stages({
       name: name,
