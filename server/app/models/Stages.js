@@ -23,6 +23,15 @@ const stageSchema = new Schema({
             type: Schema.Types.ObjectId,
             ref: 'Users'
         },
+        createdAt: {
+            type: Date,
+            default: Date.now,
+            immutable: true
+        },
+        updatedAt: {
+            type: Date,
+            default: Date.now
+        }
     }],
     tasks: [{
         type: Schema.Types.ObjectId,
