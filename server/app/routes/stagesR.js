@@ -9,6 +9,7 @@ const {
   updateStage,
   removeStage,
   getStageDetails,
+  getReviewsList,
   addReview,
   updateReview,
   deleteReview
@@ -21,6 +22,7 @@ router.post('/update/:id', updateStage)
 router.post('/delete/:id', removeStage)
 router.get('/details/:id', getStageDetails)
 router.post('/review/add/:id', addReview)
+router.post('/review/:id', getReviewsList)
 router.post('/review/update/:id', updateReview)
 router.post('/review/delete/:id', deleteReview)
 
