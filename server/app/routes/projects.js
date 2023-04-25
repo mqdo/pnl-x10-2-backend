@@ -14,7 +14,8 @@ const {
   addNewMembers,
   updateMember,
   removeMember,
-  getStagesList
+  getStagesList,
+  searchStages
 } = require('../controllers/projects.js');
 
 router.get('/all', getAllProjects);
@@ -29,5 +30,6 @@ router.post('/members/add/:id', addNewMembers);
 router.post('/members/update/:id', updateMember);
 router.post('/members/remove/:id', removeMember);
 router.get('/stages/:id', getStagesList);
+router.get('/stages/search/:id', searchStages);
 
 module.exports = router;
