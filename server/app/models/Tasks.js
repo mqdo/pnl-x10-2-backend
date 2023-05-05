@@ -9,7 +9,8 @@ const taskSchema = new Schema({
     type: {
         type: String,
         enum: ['assignment', 'issue'],
-        required: true
+        required: true,
+        default: 'assignment'
     },
     priority: {
         type: String,
@@ -19,7 +20,8 @@ const taskSchema = new Schema({
     createdDate: {
         type: Date,
         required: true,
-        default: Date.now
+        default: Date.now,
+        immutable: true
     },
     startDate: {
         type: Date,
@@ -34,21 +36,22 @@ const taskSchema = new Schema({
     status: {
         type: String,
         enum: ['open', 'inprogress', 'review', 'reopen', 'done', 'cancel'],
-        required: true
+        required: true,
+        default: 'open'
     },
     createdBy: {
         type: Schema.Types.ObjectId,
         ref: 'Users',
         required: true
     },
-    assignedTo: {
+    assignee: {
         type: Schema.Types.ObjectId,
         ref: 'Users'
     },
-    comments: {
+    comments: [{
         type: Schema.Types.ObjectId,
         ref: 'Comments'
-    }
+    }]
 });
 
 const Tasks = mongoose.model('Tasks', taskSchema);
