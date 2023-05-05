@@ -275,6 +275,33 @@ const getMembersList = async (req, res) => {
     return res.status(400).json({ message: err.message || 'Bad request' });
   }
 };
+const getFullMembersList = async (req, res) => {
+  const { id } = req.params;
+  let userId = new ObjectId(req?.user?.id);
+  try {
+    let project = await Projects.findById(id)
+      .populate({
+        path: 'members.data',
+        options: { allowEmptyArray: true },
+        select: '_id fullName email avatar username'
+      });
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    let isMember = project?.members.some((member) => member?.data?._id?.equals(userId));
+    if (!isMember) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    const total = project.members.length;
+    return res.status(200).json({
+      projectId: project._id,
+      members: project.members,
+      total: total
+    });
+  } catch (err) {
+    return res.status(400).json({ message: err.message || 'Bad request' });
+  }
+};
 const addNewMembers = async (req, res) => {
   const members = req.body;
   const { id } = req.params;
@@ -489,6 +516,42 @@ const getStagesList = async (req, res) => {
     return res.status(400).json({ message: err.message || 'Bad request' });
   }
 };
+const searchStages = async (req, res) => {
+  const { id } = req.params;
+  const name = req?.query?.name || '';
+  const page = parseInt(req?.query?.page) || 1;
+  const limit = parseInt(req?.query?.limit) || 10;
+  let userId = new ObjectId(req?.user?.id);
+  try {
+    let project = await Projects.findById(id)
+      .populate({
+        path: 'stages',
+        options: { allowEmptyArray: true }
+      });
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    let isMember = project?.members.some((member) => member?.data.equals(userId));
+    if (!isMember) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    const regex = new RegExp(name, 'i');
+    const stages = project.stages.filter((stage) => regex.test(stage.name));
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const total = stages.length;
+    const result = stages.slice(startIndex, endIndex);
+    return res.status(200).json({
+      projectId: project._id,
+      stages: result,
+      total: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (err) {
+    return res.status(400).json({ message: err.message || 'Bad request' });
+  }
+};
 
 module.exports = {
   getAllProjects,
@@ -499,8 +562,10 @@ module.exports = {
   deleteProject,
   getProjectDetails,
   getMembersList,
+  getFullMembersList,
   addNewMembers,
   updateMember,
   removeMember,
-  getStagesList
+  getStagesList,
+  searchStages
 };

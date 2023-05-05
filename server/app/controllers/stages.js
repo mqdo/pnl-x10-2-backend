@@ -447,6 +447,44 @@ exports.getStageDetails = async (req, res) => {
   }
 };
 
+exports.getReviewsList = async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ message: 'StageId are required' });
+  }
+  try {
+    const userId = new ObjectId(req?.user?.id);
+    const stageId = new ObjectId(id);
+    const stage = await Stages.findById(id)
+      .populate({
+        path: 'reviews.reviewer',
+        select: '_id avatar fullName username email',
+        options: { allowEmptyArray: true }
+      });
+    if (!stage) {
+      return res.status(404).json({ message: 'Stage not found' });
+    }
+    const project = await Projects.findOne({
+      'members.data': userId,
+      'stages': { '$in': [stageId] }
+    })
+      .populate({
+        path: 'stages',
+        options: { allowEmptyArray: true }
+      });
+
+    if (!project) {
+      return res.status(400).json({ message: 'Project not found or user not authorized' });
+    }
+
+    stage.tasks = undefined;
+    return res.status(200).json({
+      review: stage.reviews
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message || 'Bad request' });
+  }
+};
 exports.addReview = async (req, res) => {
   const { id } = req.params;
   const { review } = req.body;
@@ -482,10 +520,18 @@ exports.addReview = async (req, res) => {
     })
 
     await stage.save();
-    stage.tasks = undefined;
+
+    const newStage = await Stages.findById(id)
+      .populate({
+        path: 'reviews.reviewer',
+        select: '_id avatar fullName username email',
+        options: { allowEmptyArray: true }
+      });
+
+    newStage.tasks = undefined;
     return res.status(201).json({
       message: 'Review added successfully',
-      stage
+      review: newStage.reviews
     });
   } catch (err) {
     res.status(400).json({ message: err.message || 'Bad request' });
@@ -524,15 +570,24 @@ exports.updateReview = async (req, res) => {
     for (const rv of stage.reviews) {
       if (rv.reviewer.equals(userId) && rv._id.equals(reviewId)) {
         rv.content = review;
+        rv.updatedAt = Date.now();
       }
     }
 
     await stage.save();
 
-    stage.tasks = undefined;
+    const newStage = await Stages.findById(id)
+      .populate({
+        path: 'reviews.reviewer',
+        select: '_id avatar fullName username email',
+        options: { allowEmptyArray: true }
+      });
+
+    newStage.tasks = undefined;
+
     return res.status(200).json({
       message: 'Review updated successfully',
-      stage
+      review: newStage.reviews
     });
   } catch (err) {
     res.status(400).json({ message: err.message || 'Bad request' });
@@ -572,10 +627,18 @@ exports.deleteReview = async (req, res) => {
 
     await stage.save();
 
-    stage.tasks = undefined;
+    const newStage = await Stages.findById(id)
+      .populate({
+        path: 'reviews.reviewer',
+        select: '_id avatar fullName username email',
+        options: { allowEmptyArray: true }
+      });
+
+    newStage.tasks = undefined;
+
     return res.status(200).json({
       message: 'Review deleted successfully',
-      stage
+      review: newStage.reviews
     });
   } catch (err) {
     res.status(400).json({ message: err.message || 'Bad request' });
