@@ -8,6 +8,7 @@ const Tasks = require('../models/Tasks.js');
 const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
 
 const addNewTask = async (req, res) => {
+  console.log('huh');
   const {
     stageId,
     title,
@@ -72,8 +73,11 @@ const addNewTask = async (req, res) => {
 
     if (assignee) {
       const validUser = await Users.findById(assignee);
-      if (validUser) {
+      const isMember = project.members.data.includes(assignee._id);
+      if (validUser && isMember) {
         task.assignee = validUser._id;
+      } else {
+        return res.status(400).json({ message: 'Invalid assignee id or assignee is not a member of this project' });
       }
     }
 
@@ -88,6 +92,7 @@ const addNewTask = async (req, res) => {
     return res.status(201).json({ message: 'Created new task successfully', task })
 
   } catch (err) {
+    console.log(err);
     return res.status(400).json({ message: err.message || 'Bad request' });
   }
 }
@@ -226,7 +231,7 @@ const updateTask = async (req, res) => {
   }
 };
 
-const getTask = async (req, res) => {
+const getTaskDetails = async (req, res) => {
   const { id } = req.params;
   try {
     const userId = new ObjectId(req?.user?.id);
@@ -265,5 +270,5 @@ const getTask = async (req, res) => {
 module.exports = {
   addNewTask,
   updateTask,
-  getTask
+  getTaskDetails
 }

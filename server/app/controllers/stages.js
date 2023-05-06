@@ -265,13 +265,27 @@ exports.addStage = async (req, res) => {
       startDate: newStartDate,
       endDateExpected: newEndDateExpected
     });
-    await stage.save();
     const newProject = await Projects.findById(project._id);
-    if (newProject.stages?.length > 0) {
+    if (project.stages?.length > 0) {
+      const lastStage = await Projects.findById(project.stages[0]._id)
+        .populate({
+          path: 'tasks',
+          options: { allowEmptyArray: true }
+        });
+      if (lastStage.tasks?.length > 0) {
+        stage.tasks = lastStage.tasks.filter(task => {
+          if (task.status !== 'done' && task.status !== 'cancel') {
+            lastStage.tasks.pull({ _id: task._id });
+            return true;
+          }
+          return false;
+        });
+      }
       newProject.stages.unshift(stage._id);
     } else {
       newProject.stages.push(stage._id);
     }
+    await stage.save();
     await newProject.save();
     stage.tasks = undefined;
     return res.status(201).json({
