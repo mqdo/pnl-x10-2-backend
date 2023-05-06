@@ -4,7 +4,7 @@ const User = require("../models/Users");
 const Comment = require("../models/Comments");
 const getcomments = async (req, res) => {
   try {
-    const task = await Task.findById(req.params.taskId).populate({
+    const task = await Task.findById(req.params.id).populate({
       path: "comments",
       populate: {
         path: "commenter",
@@ -20,7 +20,7 @@ const getcomments = async (req, res) => {
 
 const addcomment = async (req, res) => {
   try {
-    const task = await Task.findById(req.params.taskId);
+    const task = await Task.findById(req.params.id);
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
