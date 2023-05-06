@@ -37,7 +37,7 @@ const addcomment = async (req, res) => {
     return res.json(savedComment);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Error add comment" });
   }
 };
 
