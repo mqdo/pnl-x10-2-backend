@@ -13,7 +13,7 @@ const commentSchema = new Schema({
   },
   commenter: {
     type: Schema.Types.ObjectId,
-    ref: 'Tasks'
+    ref: 'Users'
   }
 })
 const Comments = mongoose.model('Comments', commentSchema);
