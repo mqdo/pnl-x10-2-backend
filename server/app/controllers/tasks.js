@@ -8,7 +8,6 @@ const Tasks = require('../models/Tasks.js');
 const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
 
 const addNewTask = async (req, res) => {
-  console.log('huh');
   const {
     stageId,
     title,
@@ -73,7 +72,8 @@ const addNewTask = async (req, res) => {
 
     if (assignee) {
       const validUser = await Users.findById(assignee);
-      const isMember = project.members.data.includes(assignee._id);
+      // console.log(project.members);
+      const isMember = project.members.some((member) => member.data.equals(new ObjectId(assignee)));
       if (validUser && isMember) {
         task.assignee = validUser._id;
       } else {
