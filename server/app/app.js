@@ -31,6 +31,7 @@ const authRoute = require('./routes/auth.js');
 const stageRoute = require("./routes/stagesR.js")
 const projectRoute = require('./routes/projects.js');
 const userRoute = require('./routes/users.js');
+const taskRoute = require('./routes/tasks.js');
 const { authenticate } = require('./middleware/auth.js');
 
 app.use(cors({
@@ -50,6 +51,7 @@ app.use('/auth', authRoute);
 app.use('/stage', authenticate, stageRoute);
 app.use('/user', authenticate, userRoute);
 app.use('/project', authenticate, projectRoute);
+app.use('/task', authenticate, taskRoute);
 
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
