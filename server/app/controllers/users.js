@@ -74,7 +74,7 @@ const updateUserDetails = async (req, res) => {
     const newUser = await Users.findById(userId, { password: 0, '__v': 0 });
     const message = changes.length > 0
       ? `User updated successfully (${changes.length} change(s): ${changes.join(', ')})`
-      : 'No changes were made':
+      : 'No changes were made';
     return res.status(200).json({
       user: newUser,
       message
@@ -131,7 +131,7 @@ const updateUserPrivateDetails = async (req, res) => {
     const newUser = await Users.findById(userId, { password: 0, '__v': 0 });
     return res.status(200).json({
       user: newUser,
-      message: message.length > 0 ? message.join(', ') : 'All fields are updated successfully'
+      message: message.length > 0 ? message.join(', ') : 'All fields have been updated successfully'
     });
   } catch (error) {
     console.log(error);
