@@ -7,6 +7,7 @@ const Stages = require('../models/Stages.js');
 const Tasks = require('../models/Tasks.js');
 const Comments = require('../models/Comments.js');
 const isEmail = require('../../config/isEmail.js');
+const dateRegex = /^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/;
 
 const basicInfo = {
   fullName: 1,
@@ -48,26 +49,35 @@ const updateUserDetails = async (req, res) => {
     const userId = new ObjectId(req?.user?.id);
     const user = await Users.findById(userId);
     const url = req?.file?.path;
+    let changes = [];
     if (fullName?.length > 4) {
       user.fullName = fullName;
+      changes.push('fullname');
     }
     if (allowedGenders.includes(gender)) {
       user.gender = gender;
+      changes.push('gender');
     }
-    if (dob?.length > 4) {
+    if (dob && dateRegex.test(dob)) {
       user.dob = new Date(dob);
+      changes.push('dob');
     }
     if (url) {
       user.avatar = url;
+      changes.push('avatar');
     }
     if (phone?.length > 4) {
       user.phone = phone;
+      changes.push('phone');
     }
     await user.save();
     const newUser = await Users.findById(userId, { password: 0, '__v': 0 });
+    const message = changes.length > 0
+      ? `User updated successfully (${changes.length} change(s): ${changes.join(', ')})`
+      : 'No changes were made':
     return res.status(200).json({
       user: newUser,
-      message: 'All fields are updated successfully'
+      message
     });
   } catch (error) {
     console.log(error);
