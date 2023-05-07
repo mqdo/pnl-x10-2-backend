@@ -86,8 +86,8 @@ const updateUserPrivateDetails = async (req, res) => {
     const user = await Users.findById(userId);
     let message = [];
     if (user.userType === 'default') {
-      if (!oldPassword || !newPassword) {
-        return res.status(400).json({ message: 'Old and new passwords are required' });
+      if (!oldPassword) {
+        return res.status(400).json({ message: 'Old password is required' });
       }
       if (!bcrypt.compareSync(oldPassword, user.password)) {
         return res.status(401).json({ message: 'Password mismatch' });
