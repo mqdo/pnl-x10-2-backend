@@ -103,11 +103,13 @@ const updateUserPrivateDetails = async (req, res) => {
         return res.status(401).json({ message: 'Password mismatch' });
       }
     }
-    if (newPassword?.length > 4) {
-      const hashPassword = bcrypt.hashSync(newPassword, 10);
-      user.password = hashPassword;
-    } else {
-      return res.status(400).json({ message: 'Password must be at least 4 characters' });
+    if (newPassword) {
+      if (newPassword?.length >= 8 && newPassword?.length <= 16) {
+        const hashPassword = bcrypt.hashSync(newPassword, 10);
+        user.password = hashPassword;
+      } else {
+        return res.status(400).json({ message: 'New password must be between 8 and 16 characters' });
+      }
     }
     if (isEmail(email)) {
       let emailExisted = await Users.findOne({ email });
