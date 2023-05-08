@@ -7,6 +7,7 @@ const Stages = require('../models/Stages.js');
 const Tasks = require('../models/Tasks.js');
 const Comments = require('../models/Comments.js');
 const isEmail = require('../../config/isEmail.js');
+const dateRegex = /^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/;
 
 const basicInfo = {
   fullName: 1,
@@ -48,26 +49,35 @@ const updateUserDetails = async (req, res) => {
     const userId = new ObjectId(req?.user?.id);
     const user = await Users.findById(userId);
     const url = req?.file?.path;
+    let changes = [];
     if (fullName?.length > 4) {
       user.fullName = fullName;
+      changes.push('fullname');
     }
     if (allowedGenders.includes(gender)) {
       user.gender = gender;
+      changes.push('gender');
     }
-    if (dob?.length > 4) {
+    if (dob && dateRegex.test(dob)) {
       user.dob = new Date(dob);
+      changes.push('dob');
     }
     if (url) {
       user.avatar = url;
+      changes.push('avatar');
     }
     if (phone?.length > 4) {
       user.phone = phone;
+      changes.push('phone');
     }
     await user.save();
     const newUser = await Users.findById(userId, { password: 0, '__v': 0 });
+    const message = changes.length > 0
+      ? `User updated successfully (${changes.length} change(s): ${changes.join(', ')})`
+      : 'No changes were made';
     return res.status(200).json({
       user: newUser,
-      message: 'All fields are updated successfully'
+      message
     });
   } catch (error) {
     console.log(error);
@@ -86,18 +96,20 @@ const updateUserPrivateDetails = async (req, res) => {
     const user = await Users.findById(userId);
     let message = [];
     if (user.userType === 'default') {
-      if (!oldPassword || !newPassword) {
-        return res.status(400).json({ message: 'Old and new passwords are required' });
+      if (!oldPassword) {
+        return res.status(400).json({ message: 'Old password is required' });
       }
       if (!bcrypt.compareSync(oldPassword, user.password)) {
         return res.status(401).json({ message: 'Password mismatch' });
       }
     }
-    if (newPassword?.length > 4) {
-      const hashPassword = bcrypt.hashSync(newPassword, 10);
-      user.password = hashPassword;
-    } else {
-      return res.status(400).json({ message: 'Password must be at least 4 characters' });
+    if (newPassword) {
+      if (newPassword?.length >= 8 && newPassword?.length <= 16) {
+        const hashPassword = bcrypt.hashSync(newPassword, 10);
+        user.password = hashPassword;
+      } else {
+        return res.status(400).json({ message: 'New password must be between 8 and 16 characters' });
+      }
     }
     if (isEmail(email)) {
       let emailExisted = await Users.findOne({ email });
@@ -119,7 +131,7 @@ const updateUserPrivateDetails = async (req, res) => {
     const newUser = await Users.findById(userId, { password: 0, '__v': 0 });
     return res.status(200).json({
       user: newUser,
-      message: message.length > 0 ? message.join(', ') : 'All fields are updated successfully'
+      message: message.length > 0 ? message.join(', ') : 'All fields have been updated successfully'
     });
   } catch (error) {
     console.log(error);
