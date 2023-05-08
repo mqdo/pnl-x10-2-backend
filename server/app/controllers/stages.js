@@ -676,6 +676,14 @@ exports.getTasksList = async (req, res) => {
       .populate({
         path: 'tasks',
         options: { allowEmptyArray: true }
+      })
+      .populate({
+        path: 'tasks.assignee',
+        select: '_id avatar fullName username email'
+      })
+      .populate({
+        path: 'tasks.createdBy',
+        select: '_id avatar fullName username email'
       });
     if (!stage) {
       return res.status(404).json({ message: 'Stage not found' });
