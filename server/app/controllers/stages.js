@@ -657,3 +657,75 @@ exports.deleteReview = async (req, res) => {
     res.status(400).json({ message: err.message || 'Bad request' });
   }
 };
+
+exports.getTasksList = async (req, res) => {
+  const { id } = req.params;
+  const {
+    assignee,
+    type,
+    priority,
+    sort
+  } = req.query;
+  if (!id) {
+    return res.status(400).json({ message: 'Project Id is required' });
+  }
+  try {
+    const userId = new ObjectId(req?.user?.id);
+    const stageId = new ObjectId(id);
+    const stage = await Stages.findById(stageId)
+      .populate({
+        path: 'tasks',
+        options: { allowEmptyArray: true }
+      });
+    if (!stage) {
+      return res.status(404).json({ message: 'Stage not found' });
+    }
+    const project = await Projects.findOne({
+      'members.data': userId,
+      'stages': { '$in': [stageId] }
+    })
+    let isMember = project?.members.some((member) => member?.data.equals(userId));
+    if (!isMember) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const filteredTasks = stage.tasks.filter((task) => {
+      let assigneeFilter = assignee
+        ? task.assignee.equals(new ObjectId(assignee))
+        : true;
+      let typeFilter = type ? task.type === type : true;
+      let priorityFilter = priority
+        ? task.priority === priority
+        : true;
+      return assigneeFilter && typeFilter && priorityFilter;
+    });
+
+    const sortedTasks = filteredTasks.sort((a, b) => {
+      const priorities = ['open', 'inprogress', 'review', 'reopen', 'done', 'cancel'];
+      switch (sort) {
+        case 'priority-asc':
+          return priorities.indexOf(a.priority) - priorities.indexOf(b.priority);
+        case 'priority-desc':
+          return priorities.indexOf(b.priority) - priorities.indexOf(a.priority);
+        case 'created-asc':
+          return a.createdAt - b.createdAt;
+        case 'created-desc':
+          return b.createdAt - a.createdAt;
+        case 'end-asc':
+          return a.endDate - b.endDate;
+        case 'end-desc':
+          return b.endDate - a.endDate;
+        default:
+          break;
+      }
+    });
+
+    res.status(200).json({
+      tasks: sortedTasks
+    });
+
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({ message: err.message || 'Bad request' });
+  }
+};

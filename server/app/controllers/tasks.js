@@ -15,6 +15,7 @@ const addNewTask = async (req, res) => {
     priority,
     startDate,
     deadline,
+    endDate,
     description,
     assignee
   } = req.body;
@@ -23,9 +24,10 @@ const addNewTask = async (req, res) => {
     !title ||
     !priority ||
     !startDate ||
-    !deadline
+    !deadline ||
+    !endDate
   ) {
-    return res.status(400).json({ message: 'stageId, title, priority, startDate and deadline are required' });
+    return res.status(400).json({ message: 'stageId, title, priority, startDate, deadline and endDate are required' });
   }
   try {
     const userId = new ObjectId(req?.user?.id);
@@ -45,15 +47,21 @@ const addNewTask = async (req, res) => {
 
     const newStartDate = new Date(startDate);
     const newDeadline = new Date(deadline);
+    const newEndDate = new Date(endDate);
 
     if (newDeadline <= newStartDate) {
       return res.status(400).json({ message: 'deadline of the task must be after startDate' });
     }
 
+    if (newEndDate <= newStartDate) {
+      return res.status(400).json({ message: 'endDate of the task must be after startDate' });
+    }
+
     const task = new Tasks({
       title,
       startDate: newStartDate,
-      deadline: newDeadline
+      deadline: newDeadline,
+      endDate: newEndDate
     });
 
     if (!validPriors.includes(priority)) {
@@ -89,7 +97,25 @@ const addNewTask = async (req, res) => {
 
     await stage.save();
 
-    return res.status(201).json({ message: 'Created new task successfully', task })
+    const newTask = await Tasks.findById(task._id)
+      .populate({
+        path: 'createdBy',
+        select: '_id fullName email avatar username'
+      })
+      .populate({
+        path: 'assignee',
+        select: '_id fullName email avatar username'
+      });
+
+    newTask.projectId = project._id;
+    newTask.projectCode = project.code;
+    newTask.stageId = stage._id;
+    newTask.comments = undefined;
+
+    return res.status(201).json({
+      message: 'Created new task successfully',
+      task: newTask
+    })
 
   } catch (err) {
     console.log(err);
@@ -195,20 +221,13 @@ const updateTask = async (req, res) => {
       }
     }
 
-    if (startDate || deadline || endDate) {
-      const newStartDate = new Date(startDate) || task.startDate;
-      const newDeadline = new Date(endDate) || task.endDate;
-      const newEndDate = new Date(endDate) || undefined;
-      if (newEndDate && newEndDate > newStartDate) {
-        task.endDate = newEndDate;
-        task.startDate = newStartDate;
-      }
-      if (newDeadline && newDeadline > newStartDate) {
-        task.deadline = newDeadline;
-      }
-      if (newStartDate && newStartDate < newDeadline) {
-        task.startDate = newStartDate;
-      }
+    const newStartDate = startDate ? new Date(startDate) : task.startDate;
+    const newDeadline = deadline ? new Date(deadline) : task.endDate;
+    const newEndDate = endDate ? new Date(endDate) : task.endDate;
+    if (newEndDate > newStartDate && newDeadline > newStartDate) {
+      task.endDate = newEndDate;
+      task.deadline = newDeadline;
+      task.startDate = newStartDate;
     }
 
     if (description) {
@@ -224,7 +243,25 @@ const updateTask = async (req, res) => {
 
     await task.save();
 
-    return res.status(201).json({ message: 'Updated task successfully', task })
+    const newTask = await Tasks.findById(id)
+      .populate({
+        path: 'createdBy',
+        select: '_id fullName email avatar username'
+      })
+      .populate({
+        path: 'assignee',
+        select: '_id fullName email avatar username'
+      });
+
+    newTask.projectId = project._id;
+    newTask.projectCode = project.code;
+    newTask.stageId = stage._id;
+    newTask.comments = undefined;
+
+    return res.status(201).json({
+      message: 'Updated task successfully',
+      task: newTask
+    });
 
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Bad request' });
@@ -254,7 +291,20 @@ const getTaskDetails = async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const task = await Tasks.findById(id);
+    const task = await Tasks.findById(id)
+      .populate({
+        path: 'createdBy',
+        select: '_id fullName email avatar username'
+      })
+      .populate({
+        path: 'assignee',
+        select: '_id fullName email avatar username'
+      });
+
+    task.projectId = project._id;
+    task.projectCode = project.code;
+    task.stageId = stage._id;
+    task.comments = undefined;
 
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
