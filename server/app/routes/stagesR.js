@@ -12,7 +12,8 @@ const {
   getReviewsList,
   addReview,
   updateReview,
-  deleteReview
+  deleteReview,
+  getTasksList
 } = require('../controllers/stages.js')
 
 router.get('/all', getAllStages)
@@ -22,8 +23,9 @@ router.post('/update/:id', updateStage)
 router.post('/delete/:id', removeStage)
 router.get('/details/:id', getStageDetails)
 router.post('/review/add/:id', addReview)
-router.post('/review/:id', getReviewsList)
+router.get('/review/:id', getReviewsList)
 router.post('/review/update/:id', updateReview)
 router.post('/review/delete/:id', deleteReview)
+router.get('/tasks/:id', getTasksList)
 
 module.exports = router;
