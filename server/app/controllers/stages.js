@@ -479,7 +479,6 @@ exports.getReviewsList = async (req, res) => {
   } else {
     page = 1;
   }
-
   if (!id) {
     return res.status(400).json({ message: 'StageId are required' });
   }
