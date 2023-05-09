@@ -462,6 +462,7 @@ exports.getStageDetails = async (req, res) => {
 
 exports.getReviewsList = async (req, res) => {
   const { id } = req.params;
+  const { page = 1, limit = 10 } = req.query;
   if (!id) {
     return res.status(400).json({ message: 'StageId are required' });
   }
@@ -490,9 +491,16 @@ exports.getReviewsList = async (req, res) => {
       return res.status(400).json({ message: 'Project not found or user not authorized' });
     }
 
-    stage.tasks = undefined;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const total = stage.reviews.length;
+    const reviews = stage.reviews.slice(startIndex, endIndex);
+    
     return res.status(200).json({
-      review: stage.reviews
+      review: reviews,
+      total: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit)
     });
   } catch (err) {
     res.status(400).json({ message: err.message || 'Bad request' });
@@ -664,7 +672,9 @@ exports.getTasksList = async (req, res) => {
     assignee,
     type,
     priority,
-    sort
+    sort,
+    page = 1,
+    limit = 10
   } = req.query;
   if (!id) {
     return res.status(400).json({ message: 'Project Id is required' });
@@ -728,8 +738,16 @@ exports.getTasksList = async (req, res) => {
       }
     });
 
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const total = sortedTasks.length;
+    const paginatedTasks = sortedTasks.slice(startIndex, endIndex);
+
     res.status(200).json({
-      tasks: sortedTasks
+      tasks: paginatedTasks,
+      total: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit)
     });
 
   } catch (err) {
