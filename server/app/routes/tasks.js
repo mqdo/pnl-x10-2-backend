@@ -1,7 +1,7 @@
 const express = require('express');
 
 const router = express.Router();
-const {addcomment, getcomments } = require("../controllers/comments")
+const {addcomment, getcomments,deletecomment } = require("../controllers/comments")
 const {
   addNewTask,
   updateTask,
@@ -13,5 +13,6 @@ router.post('/new', addNewTask);
 router.post('/update/:id', updateTask);
 router.post("/:id/addcomment",addcomment)
 router.get("/:id/getcomments",getcomments)
+router.delete("/:id/deletecomment/:commentid",deletecomment)
 
 module.exports = router;
