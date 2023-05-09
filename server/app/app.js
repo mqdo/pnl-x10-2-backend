@@ -4,6 +4,7 @@ const cors = require('cors');
 require('dotenv').config();
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
+const path = require('path');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 // Configure Cloudinary
@@ -13,13 +14,15 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+module.exports.cloudinary = cloudinary;
+
 // Configure multer and Cloudinary storage
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'avatar',
     format: async (req, file) => 'png',
-    public_id: (req, file) => `${Date.now()}-${file.originalname}`,
+    public_id: (req, file) => `${Date.now()}-${path.parse(file.originalname).name}`,
   },
 });
 
