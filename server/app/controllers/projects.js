@@ -16,6 +16,7 @@ const getAllProjects = async (req, res) => {
   } else {
     page = 1;
   }
+  limit = limit && Number(limit) > 0 ? Number(limit) : 10;
   try {
     const userId = new ObjectId(req?.user?.id);
     // console.log(userId);
@@ -88,6 +89,7 @@ const searchProjects = async (req, res) => {
   } else {
     page = 1;
   }
+  limit = limit && Number(limit) > 0 ? Number(limit) : 10;
   try {
     const userId = new ObjectId(req?.user?.id);
     let projects = [];
@@ -261,6 +263,7 @@ const getMembersList = async (req, res) => {
   } else {
     page = 1;
   }
+  limit = limit && Number(limit) > 0 ? Number(limit) : 10;
   let userId = new ObjectId(req?.user?.id);
   try {
     let project = await Projects.findById(id)
@@ -508,6 +511,7 @@ const getStagesList = async (req, res) => {
   } else {
     page = 1;
   }
+  limit = limit && Number(limit) > 0 ? Number(limit) : 10;
   let userId = new ObjectId(req?.user?.id);
   try {
     let project = await Projects.findById(id)
@@ -546,6 +550,7 @@ const searchStages = async (req, res) => {
   } else {
     page = 1;
   }
+  limit = limit && Number(limit) > 0 ? Number(limit) : 10;
   let userId = new ObjectId(req?.user?.id);
   try {
     let project = await Projects.findById(id)

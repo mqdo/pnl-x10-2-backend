@@ -479,6 +479,7 @@ exports.getReviewsList = async (req, res) => {
   } else {
     page = 1;
   }
+  limit = limit && Number(limit) > 0 ? Number(limit) : 10;
   if (!id) {
     return res.status(400).json({ message: 'StageId are required' });
   }
