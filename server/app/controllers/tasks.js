@@ -15,7 +15,6 @@ const addNewTask = async (req, res) => {
     priority,
     startDate,
     deadline,
-    endDate,
     description,
     assignee
   } = req.body;
@@ -24,8 +23,7 @@ const addNewTask = async (req, res) => {
     !title ||
     !priority ||
     !startDate ||
-    !deadline ||
-    !endDate
+    !deadline
   ) {
     return res.status(400).json({ message: 'stageId, title, priority, startDate, deadline and endDate are required' });
   }
