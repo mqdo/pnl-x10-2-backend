@@ -1,13 +1,14 @@
 const bcrypt = require('bcrypt');
 const ObjectId = require('mongoose').Types.ObjectId;
 
+const { cloudinary } = require('../app.js');
 const Users = require('../models/Users.js');
 const Projects = require('../models/Projects.js');
 const Stages = require('../models/Stages.js');
 const Tasks = require('../models/Tasks.js');
 const Comments = require('../models/Comments.js');
 const isEmail = require('../../config/isEmail.js');
-const dateRegex = /^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/;
+const isDate = require('../../config/isDate.js');
 
 const basicInfo = {
   fullName: 1,
@@ -52,17 +53,24 @@ const updateUserDetails = async (req, res) => {
     let changes = [];
     if (fullName?.length > 4) {
       user.fullName = fullName;
-      changes.push('fullname');
+      changes.push('fullName');
     }
     if (allowedGenders.includes(gender)) {
       user.gender = gender;
       changes.push('gender');
     }
-    if (dob && dateRegex.test(dob)) {
+    if (isDate(dob)) {
       user.dob = new Date(dob);
       changes.push('dob');
     }
     if (url) {
+      const publicId = 'avatar/' + user.avatar.slice(user.avatar.lastIndexOf('/') + 1, user.avatar.lastIndexOf('.'));
+
+      // Delete the file from Cloudinary
+      cloudinary.uploader.destroy(publicId, function (error, result) {
+        console.log(result);
+      });
+
       user.avatar = url;
       changes.push('avatar');
     }

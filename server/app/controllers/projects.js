@@ -3,6 +3,7 @@ const ObjectId = require('mongoose').Types.ObjectId;
 const Projects = require('../models/Projects.js');
 const Users = require('../models/Users.js');
 const memberRoles = require('../../config/memberRoles.js');
+const isDate = require('../../config/isDate.js');
 
 const allowedStatuses = ['preparing', 'ongoing', 'suspended', 'completed'];
 // const allowedRoles = ['manager', 'leader', 'member', 'supervisor'];
@@ -153,8 +154,8 @@ const createNewProject = async (req, res) => {
     let userId = new ObjectId(req?.user?.id);
     let project = new Projects({
       name: name,
-      startDate: new Date(startDate),
-      estimatedEndDate: new Date(estimatedEndDate),
+      startDate: isDate(startDate) ? new Date(startDate) : Date.now(),
+      estimatedEndDate: isDate(estimatedEndDate) ? new Date(estimatedEndDate) : Date.now(),
       description: description,
       status: allowedStatuses.includes(status) ? status : 'preparing'
     });
@@ -189,10 +190,10 @@ const updateProject = async (req, res) => {
     if (name) {
       project.name = name;
     }
-    if (startDate) {
+    if (isDate(startDate)) {
       project.startDate = new Date(startDate);
     }
-    if (estimatedEndDate) {
+    if (isDate(estimatedEndDate)) {
       project.estimatedEndDate = new Date(estimatedEndDate);
     }
     if (description) {
@@ -440,8 +441,10 @@ const updateMember = async (req, res) => {
           default:
             break;
         }
+        if (isDate(member.joiningDate)) {
+          m.joiningDate = new Date(member.joiningDate);
+        }
         m.role = newRole;
-        m.joiningDate = new Date(member.joiningDate);
       }
     }
     await project.save();
