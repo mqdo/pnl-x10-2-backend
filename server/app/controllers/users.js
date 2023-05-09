@@ -118,14 +118,18 @@ const updateUserPrivateDetails = async (req, res) => {
       } else {
         user.email = email;
       }
+    } else {
+      message.push('Email is not a valid email address');
     }
-    if (username?.length > 4) {
+    if (username && username.length >= 4) {
       let usernameExisted = await Users.findOne({ username });
       if (usernameExisted && !usernameExisted._id.equals(user._id)) {
         message.push('Username has already been used');
       } else {
         user.username = username;
       }
+    } else {
+      message.push('Username must be at least 4 characters long');
     }
     await user.save();
     const newUser = await Users.findById(userId, { password: 0, '__v': 0 });
