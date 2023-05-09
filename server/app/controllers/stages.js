@@ -123,9 +123,13 @@ const pipelines = (userId = '', page = 1, limit = 10, name = '') => {
 };
 
 exports.searchStages = async (req, res) => {
-  const name = req?.query?.name || '';
-  const page = parseInt(req?.query?.page) || 1;
-  const limit = parseInt(req?.query?.limit) || 10;
+  let { name = '', page, limit } = req.query;
+
+  if (page && !isNaN(Number(page))) {
+    page = Number(page) > 1 ? Number(page) : 1;
+  } else {
+    page = 1;
+  }
 
   try {
     const userId = new ObjectId(req?.user?.id);
@@ -176,8 +180,14 @@ exports.searchStages = async (req, res) => {
 };
 
 exports.getAllStages = async (req, res) => {
-  const page = parseInt(req?.query?.page) || 1;
-  const limit = parseInt(req?.query?.limit) || 10;
+  let { page, limit } = req.query;
+
+  if (page && !isNaN(Number(page))) {
+    page = Number(page) > 1 ? Number(page) : 1;
+  } else {
+    page = 1;
+  }
+
   try {
     const userId = new ObjectId(req?.user?.id);
     const {
@@ -462,7 +472,13 @@ exports.getStageDetails = async (req, res) => {
 
 exports.getReviewsList = async (req, res) => {
   const { id } = req.params;
-  const { page = 1, limit = 10 } = req.query;
+  let { page, limit } = req.query;
+
+  if (page && !isNaN(Number(page))) {
+    page = Number(page) > 1 ? Number(page) : 1;
+  } else {
+    page = 1;
+  }
   if (!id) {
     return res.status(400).json({ message: 'StageId are required' });
   }
@@ -668,14 +684,22 @@ exports.deleteReview = async (req, res) => {
 
 exports.getTasksList = async (req, res) => {
   const { id } = req.params;
-  const {
+  let {
     assignee,
     type,
     priority,
     sort,
-    page = 1,
-    limit = 10
+    page,
+    limit
   } = req.query;
+
+  if (page && !isNaN(Number(page))) {
+    page = Number(page) > 1 ? Number(page) : 1;
+  } else {
+    page = 1;
+  }
+  limit = limit && Number(limit) > 0 ? Number(limit) : 10;
+
   if (!id) {
     return res.status(400).json({ message: 'Project Id is required' });
   }

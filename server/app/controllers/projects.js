@@ -9,8 +9,13 @@ const allowedStatuses = ['preparing', 'ongoing', 'suspended', 'completed'];
 
 const getAllProjects = async (req, res) => {
   // console.log(req?.user);
-  const page = parseInt(req?.query?.page) || 1;
-  const limit = parseInt(req?.query?.limit) || 10;
+  let { page, limit } = req.query;
+
+  if (page && !isNaN(Number(page))) {
+    page = Number(page) > 1 ? Number(page) : 1;
+  } else {
+    page = 1;
+  }
   try {
     const userId = new ObjectId(req?.user?.id);
     // console.log(userId);
@@ -71,12 +76,18 @@ const getAllProjectsWithDetails = async (req, res) => {
   }
 };
 const searchProjects = async (req, res) => {
-  const {
-    name = false,
-    status = false,
-    page = 1,
-    limit = 10
+  let {
+    name = '',
+    status = '',
+    page,
+    limit
   } = req.query;
+
+  if (page && !isNaN(Number(page))) {
+    page = Number(page) > 1 ? Number(page) : 1;
+  } else {
+    page = 1;
+  }
   try {
     const userId = new ObjectId(req?.user?.id);
     let projects = [];
@@ -243,8 +254,13 @@ const getProjectDetails = async (req, res) => {
 };
 const getMembersList = async (req, res) => {
   const { id } = req.params;
-  const page = parseInt(req?.query?.page) || 1;
-  const limit = parseInt(req?.query?.limit) || 10;
+  let { page, limit } = req.query;
+
+  if (page && !isNaN(Number(page))) {
+    page = Number(page) > 1 ? Number(page) : 1;
+  } else {
+    page = 1;
+  }
   let userId = new ObjectId(req?.user?.id);
   try {
     let project = await Projects.findById(id)
@@ -485,8 +501,13 @@ const removeMember = async (req, res) => {
 };
 const getStagesList = async (req, res) => {
   const { id } = req.params;
-  const page = parseInt(req?.query?.page) || 1;
-  const limit = parseInt(req?.query?.limit) || 10;
+  let { page, limit } = req.query;
+
+  if (page && !isNaN(Number(page))) {
+    page = Number(page) > 1 ? Number(page) : 1;
+  } else {
+    page = 1;
+  }
   let userId = new ObjectId(req?.user?.id);
   try {
     let project = await Projects.findById(id)
@@ -518,9 +539,13 @@ const getStagesList = async (req, res) => {
 };
 const searchStages = async (req, res) => {
   const { id } = req.params;
-  const name = req?.query?.name || '';
-  const page = parseInt(req?.query?.page) || 1;
-  const limit = parseInt(req?.query?.limit) || 10;
+  let { name = '', page, limit } = req.query;
+
+  if (page && !isNaN(Number(page))) {
+    page = Number(page) > 1 ? Number(page) : 1;
+  } else {
+    page = 1;
+  }
   let userId = new ObjectId(req?.user?.id);
   try {
     let project = await Projects.findById(id)
