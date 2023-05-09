@@ -45,21 +45,15 @@ const addNewTask = async (req, res) => {
 
     const newStartDate = new Date(startDate);
     const newDeadline = new Date(deadline);
-    const newEndDate = new Date(endDate);
 
     if (newDeadline <= newStartDate) {
       return res.status(400).json({ message: 'deadline of the task must be after startDate' });
     }
 
-    if (newEndDate <= newStartDate) {
-      return res.status(400).json({ message: 'endDate of the task must be after startDate' });
-    }
-
     const task = new Tasks({
       title,
       startDate: newStartDate,
-      deadline: newDeadline,
-      endDate: newEndDate
+      deadline: newDeadline
     });
 
     if (!validPriors.includes(priority)) {
