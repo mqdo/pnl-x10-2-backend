@@ -232,6 +232,7 @@ exports.getAllStages = async (req, res) => {
   }
 };
 
+
 exports.addStage = async (req, res) => {
   const { projectId, name, startDate, endDateExpected } = req.body;
   if (
