@@ -513,7 +513,7 @@ exports.getReviewsList = async (req, res) => {
     const endIndex = page * limit;
     const total = stage.reviews.length;
     const reviews = stage.reviews.slice(startIndex, endIndex);
-    
+
     return res.status(200).json({
       review: reviews,
       total: total,
@@ -711,15 +711,17 @@ exports.getTasksList = async (req, res) => {
     const stage = await Stages.findById(stageId)
       .populate({
         path: 'tasks',
+        populate: [
+          {
+            path: 'assignee',
+            select: '_id avatar fullName username email'
+          },
+          {
+            path: 'createdBy',
+            select: '_id avatar fullName username email'
+          }
+        ],
         options: { allowEmptyArray: true }
-      })
-      .populate({
-        path: 'tasks.assignee',
-        select: '_id avatar fullName username email'
-      })
-      .populate({
-        path: 'tasks.createdBy',
-        select: '_id avatar fullName username email'
       });
     if (!stage) {
       return res.status(404).json({ message: 'Stage not found' });
