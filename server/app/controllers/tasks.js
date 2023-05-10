@@ -235,18 +235,23 @@ const updateTask = async (req, res) => {
       }
     }
 
-    const newStartDate = startDate ? new Date(startDate) : task.startDate;
-    const newDeadline = deadline ? new Date(deadline) : task.endDate;
-    if (newDeadline > newStartDate) {
-      if (newDeadline !== task.deadline) {
+    if (deadline) {
+      const newDeadline = new Date(deadline);
+      const newStartDate = startDate ? new Date(startDate) : task.startDate;
+      if (newDeadline > newStartDate && newDeadline !== task.deadline) {
         changes.push(`Deadline: ${task.deadline.toISOString()} -> ${newDeadline.toISOString()}`);
         task.deadline = newDeadline;
       }
-      if (newStartDate !== task.startDate) {
+    }
+
+    if (startDate) {
+      const newStartDate = startDate ? new Date(startDate) : task.startDate;
+      if (newStartDate < task.deadline && newStartDate !== task.startDate) {
         changes.push(`Start Date: ${task.startDate.toISOString()} -> ${newStartDate.toISOString()}`);
         task.startDate = newStartDate;
       }
     }
+
     if (endDate) {
       const newEndDate = new Date(endDate);
       if (newEndDate > task.startDate && newEndDate !== task.endDate) {
