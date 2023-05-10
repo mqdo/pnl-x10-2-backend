@@ -119,15 +119,17 @@ const updateUserPrivateDetails = async (req, res) => {
         return res.status(400).json({ message: 'New password must be between 8 and 16 characters' });
       }
     }
-    if (isEmail(email)) {
-      let emailExisted = await Users.findOne({ email });
-      if (emailExisted) {
-        message.push('Email has already been used');
+    if (email) {
+      if (isEmail(email)) {
+        let emailExisted = await Users.findOne({ email });
+        if (emailExisted) {
+          message.push('Email has already been used');
+        } else {
+          user.email = email;
+        }
       } else {
-        user.email = email;
+        message.push('Email is not a valid email address');
       }
-    } else {
-      message.push('Email is not a valid email address');
     }
     if (username) {
       if (username.length >= 4) {
