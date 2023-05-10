@@ -721,6 +721,7 @@ exports.getTasksList = async (req, res) => {
             select: '_id avatar fullName username email'
           }
         ],
+        select: '-members -activities',
         options: { allowEmptyArray: true }
       });
     if (!stage) {

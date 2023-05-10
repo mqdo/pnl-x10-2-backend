@@ -2,24 +2,33 @@ const express = require("express");
 const Task = require("../models/Tasks");
 const User = require("../models/Users");
 const Comment = require("../models/Comments");
-const getcomments = async (req, res) => {
+const Activities = require("../models/Activities");
+
+const getComments = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id).populate({
       path: "comments",
       populate: {
         path: "commenter",
-        select: "fullName avatar _id",
+        select: "fullName username email avatar _id",
       },
     });
-    res.json(task.comments);
+    res.status(200).json({
+      comments: task.comments
+    });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send("Error get comment");
+    res.status(400).send("Error getting comment");
   }
 };
 
-const addcomment = async (req, res) => {
+const addComment = async (req, res) => {
+  const { content } = req.body;
+
   try {
+    const userId = new ObjectId(req.user.id);
+    const user = await User.findById(userId);
+
     const task = await Task.findById(req.params.id);
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
@@ -27,29 +36,49 @@ const addcomment = async (req, res) => {
 
     // Tạo Comment mới
     const comment = new Comment({
-      content: req.body.content,
-      commenter: req.user.id,
+      content,
+      commenter: userId,
     });
 
     const savedComment = await comment.save();
+
     task.comments.push(savedComment);
+
+    const activity = new Activities({
+      userId,
+      actions: [`New comment (${savedComment._id}) added by ${userId} (${user.username}). Content: ${savedComment.content}`]
+    })
+
+    if (task.activities?.length > 0) {
+      task.activities.unshift(activity);
+    } else {
+      task.activities.push(activity);
+    }
+
     await task.save();
-    return res.json(savedComment);
+    return res.status(201).json({
+      message: 'Comment added successfully',
+      comment: savedComment
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Error add comment" });
+    return res.status(400).json({ message: error.message || "Error adding comment" });
   }
 };
-const deletecomment = async (req, res) => {
+const deleteComment = async (req, res) => {
+  const { id, commentid } = req.params;
+
   try {
+    const userId = new ObjectId(req.user.id);
+    const user = await User.findById(userId);
     // Lấy Task theo ID
-    const task = await Task.findById(req.params.id);
+    const task = await Task.findById(id);
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
 
     // Xóa comment trong comments
-    const comment = await Comment.findByIdAndDelete(req.params.commentid);
+    const comment = await Comment.findByIdAndDelete(commentid);
     if (!comment) {
       return res.status(404).json({ message: "Comment not found" });
     }
@@ -58,15 +87,40 @@ const deletecomment = async (req, res) => {
     const index = task.comments.indexOf(comment._id);
     if (index > -1) {
       task.comments.splice(index, 1);
-      await task.save();
     }
 
+    const activity = new Activities({
+      userId,
+      actions: [`Comment (${commentid}) deleted by ${userId} (${user.username})`]
+    })
+
+    if (task.activities?.length > 0) {
+      task.activities.unshift(activity);
+    } else {
+      task.activities.push(activity);
+    }
+    
+    await task.save();
+
+    const newTask = await Task.findById(task._id)
+      .populate({
+        path: 'comments',
+        options: { allowEmptyArray: true },
+        populate: {
+          path: 'commenter',
+          select: '_id fullName email avatar username'
+        }
+      });
+
     // Trả về thông tin Comment đã bị xóa
-    return res.json(task);
+    return res.status(200).json({
+      message: 'Comment deleted successfully',
+      task: newTask
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "server error" });
+    return res.status(400).json({ message: error.message || "server error" });
   }
 };
 
-module.exports = { addcomment, getcomments, deletecomment };
+module.exports = { addComment, getComments, deleteComment };
