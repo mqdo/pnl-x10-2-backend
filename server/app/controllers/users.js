@@ -120,6 +120,7 @@ const updateUserPrivateDetails = async (req, res) => {
       }
     }
     if (email) {
+      console.log(email);
       if (isEmail(email)) {
         let emailExisted = await Users.findOne({ email });
         if (emailExisted) {
