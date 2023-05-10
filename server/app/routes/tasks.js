@@ -1,18 +1,24 @@
 const express = require('express');
 
 const router = express.Router();
-const {addcomment, getcomments,deletecomment } = require("../controllers/comments")
+const {
+  addComment,
+  getComments,
+  deleteComment
+} = require("../controllers/comments")
 const {
   addNewTask,
   updateTask,
-  getTaskDetails
+  getTaskDetails,
+  getTaskActivities
 } = require('../controllers/tasks.js');
 
 router.get('/details/:id', getTaskDetails);
 router.post('/new', addNewTask);
 router.post('/update/:id', updateTask);
-router.post("/:id/addcomment",addcomment)
-router.get("/:id/getcomments",getcomments)
-router.delete("/:id/deletecomment/:commentid",deletecomment)
+router.get('/activities/:id', getTaskActivities)
+router.post('/:id/addcomment', addComment)
+router.get('/:id/getcomments', getComments)
+router.delete('/:id/deletecomment/:commentid', deleteComment)
 
 module.exports = router;

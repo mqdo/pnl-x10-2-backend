@@ -4,6 +4,7 @@ const Users = require('../models/Users.js');
 const Projects = require('../models/Projects.js');
 const Stages = require('../models/Stages.js');
 const Tasks = require('../models/Tasks.js');
+const Activities = require('../models/Activities.js');
 
 const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
 
@@ -83,6 +84,15 @@ const addNewTask = async (req, res) => {
 
     task.createdBy = userId;
 
+    const activity = new Activities({
+      userId,
+      actions: ['Task created']
+    });
+
+    await activity.save();
+
+    task.activities.push(activity._id);
+
     await task.save();
 
     stage.tasks.push(task._id);
@@ -103,6 +113,7 @@ const addNewTask = async (req, res) => {
     newTask.projectCode = project.code;
     newTask.stageId = stage._id;
     newTask.comments = undefined;
+    newTask.activities = undefined;
 
     return res.status(201).json({
       message: 'Created new task successfully',
@@ -131,6 +142,7 @@ const updateTask = async (req, res) => {
   } = req.body;
   try {
     const userId = new ObjectId(req?.user?.id);
+    const changes = [];
 
     const task = await Tasks.findById(id);
     if (!task) {
@@ -168,43 +180,53 @@ const updateTask = async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    if (title) {
+    if (title && title !== task.title) {
+      changes.push(`Title: ${task.title} -> ${title}`);
       task.title = title;
     }
 
-    if (priority) {
+    if (priority && priority !== task.priority) {
       if (validPriors.includes(priority)) {
+        changes.push(`Priority: ${task.priority} -> ${priority}`);
         task.priority = priority;
       }
     }
 
-    if (type === 'assignment' || type === 'issue') {
+    if (
+      type !== task.type &&
+      (type === 'assignment' || type === 'issue')
+    ) {
+      changes.push(`Type: ${task.type} -> ${type}`);
       task.type = type;
     }
 
-    if (status) {
+    if (status && status !== task.status) {
       switch (status) {
         case 'open':
           break;
         case 'inprogress':
           if (task.status === 'open' || task.status === 'reopen') {
+            changes.push(`Status: ${task.status} -> ${status}`);
             task.status = status;
           }
           break;
         case 'review':
           if (task.status === 'inprogress') {
+            changes.push(`Status: ${task.status} -> ${status}`);
             task.status = status;
           }
           break;
         case 'reopen':
         case 'done':
           if (task.status === 'review') {
+            changes.push(`Status: ${task.status} -> ${status}`);
             task.status = status;
           }
           break;
         case 'cancel':
           const validStatuses = ['open', 'inprogress', 'review', 'reopen'];
           if (validStatuses.includes(status)) {
+            changes.push(`Status: ${task.status} -> ${status}`);
             task.status = status;
           }
           break;
@@ -215,22 +237,49 @@ const updateTask = async (req, res) => {
 
     const newStartDate = startDate ? new Date(startDate) : task.startDate;
     const newDeadline = deadline ? new Date(deadline) : task.endDate;
-    const newEndDate = endDate ? new Date(endDate) : task.endDate;
-    if (newEndDate > newStartDate && newDeadline > newStartDate) {
-      task.endDate = newEndDate;
-      task.deadline = newDeadline;
-      task.startDate = newStartDate;
+    if (newDeadline > newStartDate) {
+      if (newDeadline !== task.deadline) {
+        changes.push(`Deadline: ${task.deadline} -> ${deadline}`);
+        task.deadline = newDeadline;
+      }
+      if (newStartDate !== task.startDate) {
+        changes.push(`Start Date: ${task.startDate} -> ${startDate}`);
+        task.startDate = newStartDate;
+      }
+    }
+    if (endDate) {
+      const newEndDate = new Date(endDate);
+      if (newEndDate > task.startDate && newEndDate !== task.endDate) {
+        changes.push(`End Date: ${task.endDate} -> ${endDate}`);
+        task.endDate = newEndDate;
+      }
     }
 
-    if (description) {
+    if (description && description !== task.description) {
+      changes.push(`Description: ${task.description} -> ${description}`);
       task.description = description;
     }
 
-    if (assignee) {
+    if (assignee && assignee !== task.assignee) {
+      const current = await Users.findById(task.assignee);
       const validUser = await Users.findById(assignee);
       if (validUser) {
+        changes.push(`Assignee: ${task.assignee} (${current.username}) -> ${assignee} (${validUser.username})`);
         task.assignee = validUser._id;
       }
+    }
+
+    const activity = new Activities({
+      userId,
+      actions: changes
+    })
+
+    await activity.save();
+
+    if (task.activities?.length > 0) {
+      task.activities.unshift(activity);
+    } else {
+      task.activities.push(activity);
     }
 
     await task.save();
@@ -249,6 +298,7 @@ const updateTask = async (req, res) => {
     newTask.projectCode = project.code;
     newTask.stageId = stage._id;
     newTask.comments = undefined;
+    newTask.activities = undefined;
 
     return res.status(201).json({
       message: 'Updated task successfully',
@@ -297,6 +347,7 @@ const getTaskDetails = async (req, res) => {
     task.projectCode = project.code;
     task.stageId = stage._id;
     task.comments = undefined;
+    task.activities = undefined;
 
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
@@ -308,9 +359,59 @@ const getTaskDetails = async (req, res) => {
     return res.status(400).json({ message: err.message || 'Bad request' });
   }
 };
+const getTaskActivities = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const userId = new ObjectId(req?.user?.id);
+    const taskId = new ObjectId(id);
+
+    const stage = await Stages.findOne({
+      'tasks': { '$in': [taskId] }
+    });
+
+    if (!stage) {
+      return res.status(400).json({ message: 'Task not found in any stage' });
+    }
+
+    const project = await Projects.findOne({
+      'members.data': userId,
+      'stages': { '$in': [stage._id] }
+    });
+
+    if (!project) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const task = await Tasks.findById(id)
+      .populate({
+        path: 'activities',
+        options: { allowEmptyArray: true },
+        populate: {
+          path: 'userId',
+          select: '_id fullName email avatar username'
+        }
+      });
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    return res.status(200).json({
+      taskId: task._id,
+      stageId: stage._id,
+      projectId: project._id,
+      projectCode: project.code,
+      comments: task.comments
+    });
+
+  } catch (err) {
+    return res.status(400).json({ message: err.message || 'Bad request' });
+  }
+}
 
 module.exports = {
   addNewTask,
   updateTask,
-  getTaskDetails
+  getTaskDetails,
+  getTaskActivities
 }
