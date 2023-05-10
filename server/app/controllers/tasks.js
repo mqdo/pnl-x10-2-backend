@@ -401,8 +401,6 @@ const getTaskActivities = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    console.log(task);
-
     return res.status(200).json({
       taskId: task._id,
       stageId: stage._id,
