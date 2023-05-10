@@ -225,7 +225,7 @@ const updateTask = async (req, res) => {
           break;
         case 'cancel':
           const validStatuses = ['open', 'inprogress', 'review', 'reopen'];
-          if (validStatuses.includes(status)) {
+          if (validStatuses.includes(task.status)) {
             changes.push(`Status: ${task.status} -> ${status}`);
             task.status = status;
           }
@@ -235,22 +235,27 @@ const updateTask = async (req, res) => {
       }
     }
 
-    const newStartDate = startDate ? new Date(startDate) : task.startDate;
-    const newDeadline = deadline ? new Date(deadline) : task.endDate;
-    if (newDeadline > newStartDate) {
-      if (newDeadline !== task.deadline) {
-        changes.push(`Deadline: ${task.deadline} -> ${deadline}`);
+    if (deadline) {
+      const newDeadline = new Date(deadline);
+      const newStartDate = startDate ? new Date(startDate) : task.startDate;
+      if (newDeadline > newStartDate && newDeadline !== task.deadline) {
+        changes.push(`Deadline: ${task.deadline.toISOString()} -> ${newDeadline.toISOString()}`);
         task.deadline = newDeadline;
       }
-      if (newStartDate !== task.startDate) {
-        changes.push(`Start Date: ${task.startDate} -> ${startDate}`);
+    }
+
+    if (startDate) {
+      const newStartDate = startDate ? new Date(startDate) : task.startDate;
+      if (newStartDate < task.deadline && newStartDate !== task.startDate) {
+        changes.push(`Start Date: ${task.startDate.toISOString()} -> ${newStartDate.toISOString()}`);
         task.startDate = newStartDate;
       }
     }
+
     if (endDate) {
       const newEndDate = new Date(endDate);
       if (newEndDate > task.startDate && newEndDate !== task.endDate) {
-        changes.push(`End Date: ${task.endDate} -> ${endDate}`);
+        changes.push(`End Date: ${task.endDate.toISOString()} -> ${newEndDate.toISOString()}`);
         task.endDate = newEndDate;
       }
     }
@@ -396,12 +401,14 @@ const getTaskActivities = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
+    console.log(task);
+
     return res.status(200).json({
       taskId: task._id,
       stageId: stage._id,
       projectId: project._id,
       projectCode: project.code,
-      comments: task.comments
+      activities: task.activities
     });
 
   } catch (err) {
