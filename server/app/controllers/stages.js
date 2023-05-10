@@ -690,20 +690,11 @@ exports.getTasksList = async (req, res) => {
     assignee,
     type,
     priority,
-    sort,
-    page,
-    limit
+    sort
   } = req.query;
 
-  if (page && !isNaN(Number(page))) {
-    page = Number(page) > 1 ? Number(page) : 1;
-  } else {
-    page = 1;
-  }
-  limit = limit && Number(limit) > 0 ? Number(limit) : 10;
-
   if (!id) {
-    return res.status(400).json({ message: 'Project Id is required' });
+    return res.status(400).json({ message: 'Stage Id is required' });
   }
   try {
     const userId = new ObjectId(req?.user?.id);
@@ -767,16 +758,8 @@ exports.getTasksList = async (req, res) => {
       }
     });
 
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-    const total = sortedTasks.length;
-    const paginatedTasks = sortedTasks.slice(startIndex, endIndex);
-
     res.status(200).json({
-      tasks: paginatedTasks,
-      total: total,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit)
+      tasks: sortedTasks
     });
 
   } catch (err) {
