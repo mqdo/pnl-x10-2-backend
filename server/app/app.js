@@ -26,7 +26,18 @@ const storage = new CloudinaryStorage({
   },
 });
 
+const imgStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'image',
+    format: async (req, file) => 'png',
+    public_id: (req, file) => `${Date.now()}-${path.parse(file.originalname).name}`,
+  },
+});
+
 exports.upload = multer({ storage, limits: { fileSize: 4000000 } });
+
+exports.imgUpload = multer({ storage, limits: { fileSize: 4000000 } });
 
 const app = express();
 
@@ -35,6 +46,7 @@ const stageRoute = require("./routes/stagesR.js")
 const projectRoute = require('./routes/projects.js');
 const userRoute = require('./routes/users.js');
 const taskRoute = require('./routes/tasks.js');
+const uploadRoute = require('./routes/upload.js');
 const { authenticate } = require('./middleware/auth.js');
 
 app.use(cors({
@@ -55,6 +67,7 @@ app.use('/stage', authenticate, stageRoute);
 app.use('/user', authenticate, userRoute);
 app.use('/project', authenticate, projectRoute);
 app.use('/task', authenticate, taskRoute);
+app.use('/upload', authenticate, uploadRoute);
 
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
