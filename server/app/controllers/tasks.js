@@ -245,7 +245,7 @@ const updateTask = async (req, res) => {
     }
 
     if (startDate) {
-      const newStartDate = startDate ? new Date(startDate) : task.startDate;
+      const newStartDate = new Date(startDate);
       if (newStartDate < task.deadline && newStartDate !== task.startDate) {
         changes.push(`Start Date: ${task.startDate.toISOString()} -> ${newStartDate.toISOString()}`);
         task.startDate = newStartDate;
@@ -254,7 +254,7 @@ const updateTask = async (req, res) => {
 
     if (endDate) {
       const newEndDate = new Date(endDate);
-      if (newEndDate > task.startDate && newEndDate !== task.endDate) {
+      if (newEndDate > task.startDate && newEndDate !== task?.endDate) {
         changes.push(`End Date: ${task.endDate.toISOString()} -> ${newEndDate.toISOString()}`);
         task.endDate = newEndDate;
       }
