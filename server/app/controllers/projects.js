@@ -257,7 +257,7 @@ const getProjectDetails = async (req, res) => {
 };
 const getMembersList = async (req, res) => {
   const { id } = req.params;
-  let { page, limit } = req.query;
+  let { page, limit, credential } = req.query;
 
   if (page && !isNaN(Number(page))) {
     page = Number(page) > 1 ? Number(page) : 1;
@@ -280,10 +280,19 @@ const getMembersList = async (req, res) => {
     if (!isMember) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
+    if (credential) {
+      filteredList = project.members.filter((member) => (
+        member.data?.fullName == credential ||
+        member.data?.email == credential ||
+        member.data?.username == credential
+      ))
+    } else {
+      filteredList = project.members;
+    }
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
-    const total = project.members.length;
-    const result = project.members.slice(startIndex, endIndex);
+    const total = filteredList.length;
+    const result = filteredList.slice(startIndex, endIndex);
     return res.status(200).json({
       projectId: project._id,
       members: result,
