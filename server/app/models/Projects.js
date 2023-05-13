@@ -6,7 +6,8 @@ const projectsSchema = new mongoose.Schema({
   code: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    default: generateCode
   },
   name: {
     type: String,
