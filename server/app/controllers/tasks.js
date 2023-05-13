@@ -412,11 +412,66 @@ const getTaskActivities = async (req, res) => {
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Bad request' });
   }
+};
+const swapTaskActivities = async (req, res) => {
+  const { id } = req.params;
+  const { firstActivity, secondActivity } = req.body;
+  try {
+    const userId = new ObjectId(req?.user?.id);
+    const taskId = new ObjectId(id);
+
+    const stage = await Stages.findOne({
+      'tasks': { '$in': [taskId] }
+    });
+
+    if (!stage) {
+      return res.status(400).json({ message: 'Task not found in any stage' });
+    }
+
+    const project = await Projects.findOne({
+      'members.data': userId,
+      'stages': { '$in': [stage._id] }
+    });
+
+    if (!project) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const task = await Tasks.findById(id)
+      .populate({
+        path: 'activities',
+        options: { allowEmptyArray: true },
+        populate: {
+          path: 'userId',
+          select: '_id fullName email avatar username'
+        }
+      });
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    const firstIndex = task.activities.findIndex((activity) => activity.id.equals(new ObjectId(firstActivity)));
+    const secondIndex = task.activities.findIndex((activity) => activity.id.equals(new ObjectId(secondActivity)));
+
+    [task.activities[firstIndex], task.activities[secondIndex]] = [task.activities[secondIndex], task.activities[firstIndex]];
+
+    await task.save();
+
+    return res.status(200).json({
+      message: 'Task activities swap successfully',
+      activities: task.activities
+    });
+
+  } catch (err) {
+    return res.status(400).json({ message: err.message || 'Bad request' });
+  }
 }
 
 module.exports = {
   addNewTask,
   updateTask,
   getTaskDetails,
-  getTaskActivities
+  getTaskActivities,
+  swapTaskActivities
 }
