@@ -7,7 +7,8 @@ const taskSchema = new Schema({
     code: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        default: () => generateCode('task')
     },
     title: {
         type: String,
