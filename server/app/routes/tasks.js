@@ -10,15 +10,17 @@ const {
   addNewTask,
   updateTask,
   getTaskDetails,
-  getTaskActivities
+  getTaskActivities,
+  swapTaskActivities
 } = require('../controllers/tasks.js');
 
 router.get('/details/:id', getTaskDetails);
 router.post('/new', addNewTask);
 router.post('/update/:id', updateTask);
-router.get('/activities/:id', getTaskActivities)
-router.post('/:id/addcomment', addComment)
-router.get('/:id/getcomments', getComments)
-router.delete('/:id/deletecomment/:commentid', deleteComment)
+router.get('/activities/:id', getTaskActivities);
+router.post('/activities/swap/:id', getTaskActivities);
+router.post('/:id/addcomment', addComment);
+router.get('/:id/getcomments', getComments);
+router.delete('/:id/deletecomment/:commentid', deleteComment);
 
 module.exports = router;
