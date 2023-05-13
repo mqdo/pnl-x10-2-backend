@@ -15,8 +15,11 @@ const getComments = async (req, res) => {
         select: "fullName username email avatar _id",
       },
     });
+
+    const result = task.comments.sort((a, b) => a.createdAt > b.createdAt);
+
     res.status(200).json({
-      comments: task.comments
+      comments: result
     });
   } catch (err) {
     console.error(err.message);
