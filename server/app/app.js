@@ -37,7 +37,7 @@ const imgStorage = new CloudinaryStorage({
 
 exports.upload = multer({ storage, limits: { fileSize: 4000000 } });
 
-exports.imgUpload = multer({ imgStorage, limits: { fileSize: 4000000 } });
+exports.imgUpload = multer({ storage: imgStorage, limits: { fileSize: 4000000 } });
 
 const app = express();
 
