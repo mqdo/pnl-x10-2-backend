@@ -280,6 +280,7 @@ const getMembersList = async (req, res) => {
     if (!isMember) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
+    let filteredList;
     if (credential) {
       filteredList = project.members.filter((member) => (
         member.data?.fullName == credential ||
