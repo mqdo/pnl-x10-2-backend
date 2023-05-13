@@ -6,9 +6,7 @@ const projectsSchema = new mongoose.Schema({
   code: {
     type: String,
     required: true,
-    unique: true,
-    immutable: true,
-    default: generateCode
+    unique: true
   },
   name: {
     type: String,

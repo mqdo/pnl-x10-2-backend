@@ -282,11 +282,14 @@ const getMembersList = async (req, res) => {
     }
     let filteredList;
     if (credential) {
-      filteredList = project.members.filter((member) => (
-        member.data?.fullName == credential ||
-        member.data?.email == credential ||
-        member.data?.username == credential
-      ))
+      filteredList = project.members.filter((member) => {
+        const regex = new RegExp(credential, 'gi');
+        return (
+          member.data?.fullName.match(regex) ||
+          member.data?.email.match(regex) ||
+          member.data?.username.match(regex)
+        )
+      })
     } else {
       filteredList = project.members;
     }

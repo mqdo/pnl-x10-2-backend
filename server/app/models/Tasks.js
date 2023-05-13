@@ -1,7 +1,14 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+const generateCode = require('../../config/generateCode.js');
+
 const taskSchema = new Schema({
+    code: {
+        type: String,
+        required: true,
+        unique: true
+    },
     title: {
         type: String,
         required: true
@@ -57,6 +64,13 @@ const taskSchema = new Schema({
         ref: 'Activities'
     }]
 });
+
+taskSchema.pre('save', (next) => {
+    if (!this.code) {
+        this.code = generateCode('task');
+    }
+    next();
+})
 
 const Tasks = mongoose.model('Tasks', taskSchema);
 
