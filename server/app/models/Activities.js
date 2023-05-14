@@ -1,8 +1,10 @@
 const mongoose = require('mongoose');
 
+const { ObjectId, Mixed } = mongoose.Schema.Types;
+
 const activitySchema = new mongoose.Schema({
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: ObjectId,
     required: true,
     ref: 'Users'
   },
@@ -12,9 +14,20 @@ const activitySchema = new mongoose.Schema({
     default: Date.now,
     immutable: true
   },
-  actions: {
-    type: [String],
-    required: true
+  action: {
+    actionType: {
+      type: String,
+      enum: ['create', 'update', 'comment', 'complete', 'cancel'],
+      required: true
+    },
+    from: {
+      type: Mixed,
+      required: true
+    },
+    to: {
+      type: Mixed,
+      required: true
+    }
   }
 });
 

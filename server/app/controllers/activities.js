@@ -5,64 +5,11 @@ const Projects = require('../models/Projects.js');
 const Stages = require('../models/Stages.js');
 const Tasks = require('../models/Tasks.js');
 
-const getActivityDetails = async (req, res) => {
-  const { id } = req.params;
-  if (!id) {
-    return res.status(400).json({ message: 'Activity Id is required' });
-  }
-  try {
-    const userId = new ObjectId(req?.user?.id);
-    const activityId = new ObjectId(id);
-
-    const task = await Tasks.findOne({
-      'activities': { '$in': [activityId] }
-    }).populate({
-      path: 'activities',
-      options: { allowEmptyArray: true },
-      populate: {
-        path: 'userId',
-        select: '_id fullName email avatar username'
-      }
-    });
-
-    if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
-    }
-
-    const stage = await Stages.findOne({
-      'tasks': { '$in': [task._id] }
-    });
-
-    if (!stage) {
-      return res.status(400).json({ message: 'Task not found in any stage' });
-    }
-
-    const project = await Projects.findOne({
-      'members.data': userId,
-      'stages': { '$in': [stage._id] }
-    });
-
-    if (!project) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    const activity = task.activities.find((activity) => activity._id.equals(activityId));
-
-    return res.status(200).json({
-      activity
-    });
-
-  } catch (err) {
-    return res.status(400).json({ message: err.message || 'Bad request' });
-  }
-};
-
 const updateActivityDetails = async (req, res) => {
   const { id } = req.params;
   const {
     userId: taskUserId,
-    timestamp,
-    actions
+    action
   } = req.body;
   if (!id) {
     return res.status(400).json({ message: 'Activity Id is required' });
@@ -113,14 +60,12 @@ const updateActivityDetails = async (req, res) => {
       }
     }
 
-    if (timestamp && new Date(timestamp)) {
-      activity.timestamp = timestamp;
+    if (action) {
+      activity.action = action;
     }
 
-    if (actions && actions.length > 0) {
-      activity.actions = actions;
-    }
-
+    activity.markModified('from');
+    activity.markModified('to');
     await activity.save();
 
     return res.status(200).json({
@@ -184,7 +129,6 @@ const deleteActivity = async (req, res) => {
 };
 
 module.exports = {
-  getActivityDetails,
   updateActivityDetails,
   deleteActivity
 };
