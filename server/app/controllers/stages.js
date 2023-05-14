@@ -278,20 +278,21 @@ exports.addStage = async (req, res) => {
     });
     const newProject = await Projects.findById(project._id);
     if (project.stages?.length > 0) {
-      const lastStage = await Projects.findById(project.stages[0]._id)
+      const lastStage = await Stages.findById(project.stages[0]._id)
         .populate({
           path: 'tasks',
           options: { allowEmptyArray: true }
         });
       if (lastStage.tasks?.length > 0) {
-        stage.tasks = lastStage.tasks.filter(task => {
+        stage.tasks = lastStage.tasks.filter((task, index) => {
           if (task.status !== 'done' && task.status !== 'cancel') {
-            lastStage.tasks.pull({ _id: task._id });
+            lastStage.tasks.splice(index, 1);
             return true;
           }
           return false;
         });
       }
+      await lastStage.save();
       newProject.stages.unshift(stage._id);
     } else {
       newProject.stages.push(stage._id);
@@ -553,6 +554,23 @@ exports.addReview = async (req, res) => {
       return res.status(400).json({ message: 'Project not found or user not authorized' });
     }
 
+    let isManager = project?.members.some((member) => (
+      member?.data?._id.equals(userId) &&
+      member?.role === 'manager'
+    ));
+    let isLeader = project?.members.some((member) => (
+      member?.data?._id.equals(userId) &&
+      member?.role === 'leader'
+    ));
+    let isSupervisor = project?.members.some((member) => (
+      member?.data?._id.equals(userId) &&
+      member?.role === 'supervisor'
+    ));
+
+    if (!isManager && !isSupervisor && !isLeader) {
+      return res.status(401).json({ message: 'User not authorized' });
+    }
+
     stage.reviews.push({
       content: review,
       reviewer: userId
@@ -604,6 +622,23 @@ exports.updateReview = async (req, res) => {
 
     if (!project) {
       return res.status(400).json({ message: 'Project not found or user not authorized' });
+    }
+
+    let isManager = project?.members.some((member) => (
+      member?.data?._id.equals(userId) &&
+      member?.role === 'manager'
+    ));
+    let isLeader = project?.members.some((member) => (
+      member?.data?._id.equals(userId) &&
+      member?.role === 'leader'
+    ));
+    let isSupervisor = project?.members.some((member) => (
+      member?.data?._id.equals(userId) &&
+      member?.role === 'supervisor'
+    ));
+
+    if (!isManager && !isSupervisor && !isLeader) {
+      return res.status(401).json({ message: 'User not authorized' });
     }
 
     for (const rv of stage.reviews) {
@@ -660,6 +695,23 @@ exports.deleteReview = async (req, res) => {
 
     if (!project) {
       return res.status(400).json({ message: 'Project not found or user not authorized' });
+    }
+
+    let isManager = project?.members.some((member) => (
+      member?.data?._id.equals(userId) &&
+      member?.role === 'manager'
+    ));
+    let isLeader = project?.members.some((member) => (
+      member?.data?._id.equals(userId) &&
+      member?.role === 'leader'
+    ));
+    let isSupervisor = project?.members.some((member) => (
+      member?.data?._id.equals(userId) &&
+      member?.role === 'supervisor'
+    ));
+
+    if (!isManager && !isSupervisor && !isLeader) {
+      return res.status(401).json({ message: 'User not authorized' });
     }
 
     await stage.reviews.pull({ _id: reviewId });

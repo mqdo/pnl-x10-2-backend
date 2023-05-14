@@ -51,7 +51,13 @@ const addComment = async (req, res) => {
 
     const activity = new Activities({
       userId,
-      actions: [`New comment (${savedComment._id}) added by ${userId} (${user.username}). Content: ${savedComment.content}`]
+      action: {
+        actionType: 'comment',
+        from: {},
+        to: {
+          comment: comment
+        }
+      }
     })
 
     if (task.activities?.length > 0) {
@@ -92,17 +98,6 @@ const deleteComment = async (req, res) => {
     const index = task.comments.indexOf(comment._id);
     if (index > -1) {
       task.comments.splice(index, 1);
-    }
-
-    const activity = new Activities({
-      userId,
-      actions: [`Comment (${commentid}) deleted by ${userId} (${user.username})`]
-    })
-
-    if (task.activities?.length > 0) {
-      task.activities.unshift(activity);
-    } else {
-      task.activities.push(activity);
     }
     
     await task.save();

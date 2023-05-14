@@ -86,9 +86,17 @@ const addNewTask = async (req, res) => {
 
     const activity = new Activities({
       userId,
-      actions: ['Task created']
+      action: {
+        actionType: 'create',
+        from: {},
+        to: {
+          task: task
+        }
+      }
     });
 
+    activity.markModified('from');
+    activity.markModified('to');
     await activity.save();
 
     task.activities.push(activity._id);
@@ -109,9 +117,6 @@ const addNewTask = async (req, res) => {
         select: '_id fullName email avatar username'
       });
 
-    newTask.projectId = project._id;
-    newTask.projectCode = project.code;
-    newTask.stageId = stage._id;
     newTask.comments = undefined;
     newTask.activities = undefined;
 
@@ -142,7 +147,9 @@ const updateTask = async (req, res) => {
   } = req.body;
   try {
     const userId = new ObjectId(req?.user?.id);
-    const changes = [];
+    let actionType = 'update';
+    let from = {};
+    let to = {};
 
     const task = await Tasks.findById(id);
     if (!task) {
@@ -176,57 +183,134 @@ const updateTask = async (req, res) => {
     ));
     let isCreator = task.createdBy.equals(userId);
 
-    if ((!isManager && !isLeader) || !isCreator) {
+    if ((!isManager && !isLeader) && !isCreator) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    if (title && title !== task.title) {
-      changes.push(`Title: ${task.title} -> ${title}`);
+    if ((isManager || isLeader) && title && title !== task.title) {
+      from.title = task.title;
+      to.title = title;
       task.title = title;
     }
 
     if (priority && priority !== task.priority) {
       if (validPriors.includes(priority)) {
-        changes.push(`Priority: ${task.priority} -> ${priority}`);
+        from.priority = task.priority;
+        to.priority = priority;
         task.priority = priority;
       }
     }
 
     if (
+      (isManager || isLeader) &&
       type !== task.type &&
       (type === 'assignment' || type === 'issue')
     ) {
-      changes.push(`Type: ${task.type} -> ${type}`);
+      from.type = task.type;
+      to.type = type;
       task.type = type;
+    }
+
+    if (deadline) {
+      const newDeadline = new Date(deadline);
+      const newStartDate = startDate ? new Date(startDate) : task.startDate;
+      if (newDeadline > newStartDate && newDeadline !== task.deadline) {
+        from.deadline = task.deadline.toISOString();
+        to.deadline = newDeadline.toISOString();
+        task.deadline = newDeadline;
+      }
+    }
+
+    if (startDate) {
+      const newStartDate = new Date(startDate);
+      if (newStartDate < task.deadline && newStartDate !== task.startDate) {
+        from.startDate = task.startDate.toISOString();
+        to.startDate = newStartDate.toISOString();
+        task.startDate = newStartDate;
+      }
+    }
+
+    if (endDate) {
+      const newEndDate = new Date(endDate);
+      const newStartDate = startDate ? new Date(startDate) : task.startDate;
+      if (newEndDate > newStartDate && newEndDate !== task?.endDate) {
+        from.endDate = task.endDate.toISOString();
+        to.endDate = newEndDate.toISOString();
+        task.endDate = newEndDate;
+      }
+    }
+
+    if (description && description !== task.description) {
+      from.description = task.description;
+      to.description = description;
+      task.description = description;
+    }
+
+    if (assignee && assignee !== task.assignee) {
+      const current = await Users.findById(task.assignee);
+      const validUser = await Users.findById(assignee);
+      if (validUser) {
+        from.assignee = `${task.assignee} (${current.username})`;
+        to.assignee = `${assignee} (${validUser.username})`;
+        task.assignee = validUser._id;
+      }
     }
 
     if (status && status !== task.status) {
       switch (status) {
         case 'open':
+          if (isManager || isLeader) {
+            from.status = task.status;
+            to.status = status;
+            task.status = status;
+          }
           break;
         case 'inprogress':
-          if (task.status === 'open' || task.status === 'reopen') {
-            changes.push(`Status: ${task.status} -> ${status}`);
+          if (
+            isManager ||
+            isLeader ||
+            task.status === 'open' ||
+            task.status === 'reopen'
+          ) {
+            from.status = task.status;
+            to.status = status;
             task.status = status;
           }
           break;
         case 'review':
-          if (task.status === 'inprogress') {
-            changes.push(`Status: ${task.status} -> ${status}`);
+          if (
+            isManager ||
+            isLeader ||
+            task.status === 'inprogress'
+          ) {
+            from.status = task.status;
+            to.status = status;
             task.status = status;
           }
           break;
         case 'reopen':
         case 'done':
-          if (task.status === 'review') {
-            changes.push(`Status: ${task.status} -> ${status}`);
+          if (
+            isManager ||
+            isLeader ||
+            task.status === 'review'
+          ) {
+            from = { status: task.status };
+            to = { status: status };
+            actionType = 'complete';
             task.status = status;
           }
           break;
         case 'cancel':
           const validStatuses = ['open', 'inprogress', 'review', 'reopen'];
-          if (validStatuses.includes(task.status)) {
-            changes.push(`Status: ${task.status} -> ${status}`);
+          if (
+            isManager ||
+            isLeader ||
+            validStatuses.includes(task.status)
+          ) {
+            from = { status: task.status };
+            to = { status: status };
+            actionType = 'cancel';
             task.status = status;
           }
           break;
@@ -235,50 +319,17 @@ const updateTask = async (req, res) => {
       }
     }
 
-    if (deadline) {
-      const newDeadline = new Date(deadline);
-      const newStartDate = startDate ? new Date(startDate) : task.startDate;
-      if (newDeadline > newStartDate && newDeadline !== task.deadline) {
-        changes.push(`Deadline: ${task.deadline.toISOString()} -> ${newDeadline.toISOString()}`);
-        task.deadline = newDeadline;
-      }
-    }
-
-    if (startDate) {
-      const newStartDate = new Date(startDate);
-      if (newStartDate < task.deadline && newStartDate !== task.startDate) {
-        changes.push(`Start Date: ${task.startDate.toISOString()} -> ${newStartDate.toISOString()}`);
-        task.startDate = newStartDate;
-      }
-    }
-
-    if (endDate) {
-      const newEndDate = new Date(endDate);
-      if (newEndDate > task.startDate && newEndDate !== task?.endDate) {
-        changes.push(`End Date: ${task.endDate.toISOString()} -> ${newEndDate.toISOString()}`);
-        task.endDate = newEndDate;
-      }
-    }
-
-    if (description && description !== task.description) {
-      changes.push(`Description: ${task.description} -> ${description}`);
-      task.description = description;
-    }
-
-    if (assignee && assignee !== task.assignee) {
-      const current = await Users.findById(task.assignee);
-      const validUser = await Users.findById(assignee);
-      if (validUser) {
-        changes.push(`Assignee: ${task.assignee} (${current.username}) -> ${assignee} (${validUser.username})`);
-        task.assignee = validUser._id;
-      }
-    }
-
     const activity = new Activities({
       userId,
-      actions: changes
+      action: {
+        actionType,
+        from,
+        to
+      }
     })
 
+    activity.markModified('from');
+    activity.markModified('to');
     await activity.save();
 
     if (task.activities?.length > 0) {
@@ -299,9 +350,6 @@ const updateTask = async (req, res) => {
         select: '_id fullName email avatar username'
       });
 
-    newTask.projectId = project._id;
-    newTask.projectCode = project.code;
-    newTask.stageId = stage._id;
     newTask.comments = undefined;
     newTask.activities = undefined;
 
@@ -348,9 +396,6 @@ const getTaskDetails = async (req, res) => {
         select: '_id fullName email avatar username'
       });
 
-    task.projectId = project._id;
-    task.projectCode = project.code;
-    task.stageId = stage._id;
     task.comments = undefined;
     task.activities = undefined;
 
@@ -466,12 +511,61 @@ const swapTaskActivities = async (req, res) => {
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Bad request' });
   }
-}
+};
+const deleteTask = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const userId = new ObjectId(req?.user?.id);
+    const task = await Tasks.findById(id);
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    const stage = await Stages.findOne({
+      'tasks': { '$in': [task._id] }
+    });
+
+    if (!stage) {
+      return res.status(400).json({ message: 'Task not found in any stage' });
+    }
+
+    const project = await Projects.findOne({
+      'members.data': userId,
+      'stages': { '$in': [stage._id] }
+    });
+
+    if (!project) {
+      return res.status(400).json({ message: 'Project of the stage not found or user not authorized' });
+    }
+
+    for (const activity of task.activities) {
+      await Activities.findByIdAndDelete(activity);
+    }
+
+    const taskIndex = stage.tasks.indexOf(task._id);
+    if (taskIndex !== -1) {
+      stage.tasks.splice(taskIndex, 1);
+      await stage.save();
+    }
+
+    const deleted = await Tasks.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      message: 'Task removed successfully'
+    })
+
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({ message: err.message || 'Bad request' });
+  }
+};
 
 module.exports = {
   addNewTask,
   updateTask,
   getTaskDetails,
   getTaskActivities,
-  swapTaskActivities
+  swapTaskActivities,
+  deleteTask
 }
