@@ -1,7 +1,13 @@
+const XLSX = require('xlsx');
 const ObjectId = require('mongoose').Types.ObjectId;
+const fs = require('fs');
 
 const Projects = require('../models/Projects');
 const Stages = require('../models/Stages');
+const Tasks = require('../models/Tasks');
+const Activities = require('../models/Activities');
+const isDate = require('../../config/isDate');
+const xlsxDateToJsDate = require('../../config/xlsxDateToJsDate');
 
 const pipelines = (userId = '', page = 1, limit = 10, name = '') => {
   const matchUserId = [
@@ -812,6 +818,216 @@ exports.getTasksList = async (req, res) => {
 
     res.status(200).json({
       tasks: sortedTasks
+    });
+
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({ message: err.message || 'Bad request' });
+  }
+};
+
+exports.downloadTasksList = async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({ message: 'Stage Id is required' });
+  }
+  try {
+    const userId = new ObjectId(req?.user?.id);
+    const stageId = new ObjectId(id);
+    const stage = await Stages.findById(stageId)
+      .populate({
+        path: 'tasks',
+        populate: [
+          {
+            path: 'assignee',
+            select: '_id avatar fullName username email'
+          },
+          {
+            path: 'createdBy',
+            select: '_id avatar fullName username email'
+          }
+        ],
+        select: '-members -activities',
+        options: { allowEmptyArray: true }
+      });
+    if (!stage) {
+      return res.status(404).json({ message: 'Stage not found' });
+    }
+    const project = await Projects.findOne({
+      'members.data': userId,
+      'stages': { '$in': [stageId] }
+    })
+    let isMember = project?.members.some((member) => member?.data.equals(userId));
+    if (!isMember) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    let rows = [];
+    rows.push([
+      'STT',
+      'Mã công việc',
+      'Tên công việc',
+      'Link',
+      'Người thực hiện',
+      'Người tạo',
+      'Ngày tạo',
+      'Ngày bắt đầu',
+      'Ngày kết thúc dự kiến',
+      'Ngày kết thúc thực tế',
+      'Trạng thái'
+    ])
+
+    stage.tasks.forEach((task, index) => {
+      rows.push([
+        index + 1,
+        task.code,
+        task.title,
+        '',
+        task.assignee.username,
+        task.createdBy.username,
+        task.createdDate,
+        task.startDate,
+        task.deadline,
+        task.endDate || '',
+        task.status
+      ])
+    });
+
+    // create a new workbook and worksheet
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+
+    // add the worksheet to the workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+
+    // write the workbook to a buffer
+    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+
+    // set the response headers to indicate that the response is an XLSX file
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=tasks.xlsx');
+
+    // send the XLSX file as the response
+    res.end(buffer);
+
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({ message: err.message || 'Bad request' });
+  }
+};
+
+exports.uploadTasksList = async (req, res) => {
+  const { id } = req.params;
+  const url = req?.file?.path;
+
+  if (!id) {
+    return res.status(400).json({ message: 'Stage Id is required' });
+  }
+
+  try {
+    const userId = new ObjectId(req?.user?.id);
+    const stageId = new ObjectId(id);
+    const stage = await Stages.findById(stageId);
+    if (!stage) {
+      return res.status(404).json({ message: 'Stage not found' });
+    }
+    const project = await Projects.findOne({
+      'members.data': userId,
+      'stages': { '$in': [stageId] }
+    })
+    let isMember = project?.members.some((member) => member?.data.equals(userId));
+    if (!isMember) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Load the XLSX file
+    const workbook = XLSX.readFile(url);
+
+    // Get the first worksheet
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+
+    // Convert the worksheet to an array of objects
+    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+    const rows = data.slice(1);
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const validStatuses = ['open', 'inprogress', 'review', 'reopen', 'done', 'cancel'];
+
+      const title = row[0];
+      const assignee = project?.members.find((member) => member?.data.equals(row[1])) ? new ObjectId(row[1]) : undefined;
+      const startDate = isDate(xlsxDateToJsDate(row[2])) ? xlsxDateToJsDate(row[2]) : undefined;
+      const deadline = isDate(xlsxDateToJsDate(row[3])) ? new Date(xlsxDateToJsDate(row[3])) : undefined;
+      const endDate = isDate(xlsxDateToJsDate(row[4])) ? xlsxDateToJsDate(row[4]) : undefined;
+      const status = row[5] ? validStatuses.find((el) => el === row[5].replace(/\s+/g, '').toLowerCase()) : 'open';
+
+      const validDates = startDate && deadline && deadline > startDate && (endDate ? endDate > startDate : true);
+
+      if (title && assignee && validDates) {
+        const task = new Tasks({
+          title,
+          type: 'assignment',
+          priority: 'medium',
+          startDate,
+          deadline,
+          description: '',
+          status,
+          createdBy: userId,
+          assignee
+        });
+        if (isDate(endDate)) {
+          task.endDate = new Date(endDate);
+        }
+        const activity = new Activities({
+          userId,
+          action: {
+            actionType: 'create',
+            from: {},
+            to: {
+              task: task
+            }
+          }
+        })
+
+        activity.markModified('from');
+        activity.markModified('to');
+        await activity.save();
+
+        task.activities.push(activity._id);
+
+        await task.save();
+
+        stage.tasks.push(task._id);
+
+        await stage.save();
+      }
+    }
+
+    fs.unlinkSync(url);
+
+    const newStage = await Stages.findById(stageId)
+      .populate({
+        path: 'tasks',
+        populate: [
+          {
+            path: 'assignee',
+            select: '_id avatar fullName username email'
+          },
+          {
+            path: 'createdBy',
+            select: '_id avatar fullName username email'
+          }
+        ],
+        select: '-members -activities',
+        options: { allowEmptyArray: true }
+      });
+
+    return res.status(200).json({
+      message: 'Import tasks list successfully',
+      tasks: newStage.tasks
     });
 
   } catch (err) {

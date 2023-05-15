@@ -35,9 +35,28 @@ const imgStorage = new CloudinaryStorage({
   },
 });
 
+const fileStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'file',
+    resource_type: 'raw',
+    format: async (req, file) => path.extname(file.originalname).slice(1),
+    public_id: (req, file) => `${Date.now()}-${path.parse(file.originalname).name}`,
+  },
+});
+
+const localStorage = new multer.diskStorage({
+  destination: path.join(__dirname, '..', 'file'),
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${path.parse(file.originalname).name}${path.extname(file.originalname)}`);
+  },
+})
+
 exports.upload = multer({ storage, limits: { fileSize: 4000000 } });
 
 exports.imgUpload = multer({ storage: imgStorage, limits: { fileSize: 4000000 } });
+
+exports.fileUpload = multer({ storage: localStorage });
 
 const app = express();
 
