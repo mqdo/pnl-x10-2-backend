@@ -2,6 +2,8 @@ const express = require('express');
 
 const router = express.Router();
 
+const { fileUpload } = require('../app.js');
+
 const {
   getAllStages,
   searchStages,
@@ -13,7 +15,9 @@ const {
   addReview,
   updateReview,
   deleteReview,
-  getTasksList
+  getTasksList,
+  downloadTasksList,
+  uploadTasksList
 } = require('../controllers/stages.js')
 
 router.get('/all', getAllStages)
@@ -27,5 +31,7 @@ router.get('/review/:id', getReviewsList)
 router.post('/review/update/:id', updateReview)
 router.post('/review/delete/:id', deleteReview)
 router.get('/tasks/:id', getTasksList)
+router.get('/tasks/:id/export', downloadTasksList)
+router.post('/tasks/:id/import', fileUpload.single('tasks'), uploadTasksList)
 
 module.exports = router;
