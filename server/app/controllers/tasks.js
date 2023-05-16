@@ -11,20 +11,20 @@ const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
 
 
 let transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
+  host: '',
   port: 587,
   secure: false, 
   auth: {
-      user: 'yourgmailusername@gmail.com',
-      pass: 'yourgmailpassword'
+      user: '',
+      pass: ''
   }
 });
 
 let mailOptions = {
-  from: 'yourgmailusername@gmail.com',
-  to: 'recipientemail@example.com',
-  subject: 'Sending Email using Node.js',
-  text: 'That was easy!'
+  from: '',
+  to: '',
+  subject: '',
+  text: ''
 };
 
 
