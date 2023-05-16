@@ -60,10 +60,13 @@ const addComment = async (req, res) => {
       }
     })
 
+    activity.markModified('action');
+    await activity.save();
+
     if (task.activities?.length > 0) {
-      task.activities.unshift(activity);
+      task.activities.unshift(activity._id);
     } else {
-      task.activities.push(activity);
+      task.activities.push(activity._id);
     }
 
     await task.save();
