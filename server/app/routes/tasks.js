@@ -4,7 +4,8 @@ const router = express.Router();
 const {
   addComment,
   getComments,
-  deleteComment
+  deleteComment,
+  updateComment
 } = require("../controllers/comments")
 const {
   addNewTask,
@@ -24,5 +25,5 @@ router.post('/activities/swap/:id', swapTaskActivities);
 router.post('/:id/addcomment', addComment);
 router.get('/:id/getcomments', getComments);
 router.delete('/:id/deletecomment/:commentid', deleteComment);
-
+router.put('/:id/updatecomment/:commentid',updateComment)
 module.exports = router;
