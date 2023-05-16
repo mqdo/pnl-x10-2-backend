@@ -5,28 +5,8 @@ const Projects = require('../models/Projects.js');
 const Stages = require('../models/Stages.js');
 const Tasks = require('../models/Tasks.js');
 const Activities = require('../models/Activities.js');
-const nodemailer = require('nodemailer');
 
 const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
-
-
-let transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, 
-  auth: {
-      user: 'yourgmailusername@gmail.com',
-      pass: 'yourgmailpassword'
-  }
-});
-
-let mailOptions = {
-  from: 'yourgmailusername@gmail.com',
-  to: 'recipientemail@example.com',
-  subject: 'Sending Email using Node.js',
-  text: 'That was easy!'
-};
-
 
 const addNewTask = async (req, res) => {
   const {
