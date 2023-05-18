@@ -1,14 +1,12 @@
 const ObjectId = require('mongoose').Types.ObjectId;
+const nodemailer = require('nodemailer');
 
 const Users = require('../models/Users.js');
 const Projects = require('../models/Projects.js');
 const Stages = require('../models/Stages.js');
 const Tasks = require('../models/Tasks.js');
 const Activities = require('../models/Activities.js');
-const nodemailer = require('nodemailer');
-
-const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
-
+const pipelines = require('../utils/pipelines.js');
 
 let transporter = nodemailer.createTransport({
   host: '',
@@ -27,6 +25,55 @@ let mailOptions = {
   text: ''
 };
 
+const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
+
+const getAllTasks = async (req, res) => {
+  try {
+    const userId = new ObjectId(req?.user?.id);
+    const {
+      matchUserId,
+      populateStages,
+      sortProjects,
+      unwindStages,
+      populateTasks,
+      unwindTasks,
+      lookupTask,
+      addTaskFields,
+      removeTaskFields,
+      groupTasks,
+      taskResults
+    } = pipelines(userId);
+
+    const tasks = await Projects.aggregate([
+      // populate project.stages and sort projects
+      ...matchUserId,
+      ...populateStages,
+      ...sortProjects,
+      // create separate documents for each stage and populate stage.tasks
+      ...unwindStages,
+      ...populateTasks,
+      // create separate documents for each task and add/remove its fields
+      ...unwindTasks,
+      ...lookupTask,
+      ...addTaskFields,
+      ...removeTaskFields,
+      // group them together and return final results
+      ...groupTasks,
+      ...taskResults
+    ]);
+
+    if (tasks.length === 0) {
+      return res.status(404).json({ message: 'No tasks were found' });
+    }
+
+    const results = tasks[0];
+
+    return res.status(200).json({ ...results });
+  } catch (err) {
+    console.error(err);
+    return res.status(400).json({ message: err.message || 'Bad request' });
+  }
+}
 
 const addNewTask = async (req, res) => {
   const {
@@ -115,8 +162,7 @@ const addNewTask = async (req, res) => {
       }
     });
 
-    activity.markModified('from');
-    activity.markModified('to');
+    activity.markModified('action');
     await activity.save();
 
     task.activities.push(activity._id);
@@ -170,6 +216,7 @@ const updateTask = async (req, res) => {
     let actionType = 'update';
     let from = {};
     let to = {};
+    let changes = [];
 
     const task = await Tasks.findById(id);
     if (!task) {
@@ -207,16 +254,26 @@ const updateTask = async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    if ((isManager || isLeader) && title && title !== task.title) {
+    if (
+      (isManager || isLeader) &&
+      title &&
+      title !== task.title
+    ) {
       from.title = task.title;
       to.title = title;
+      changes.push('title');
       task.title = title;
     }
 
-    if (priority && priority !== task.priority) {
+    if (
+      (isManager || isLeader) &&
+      priority &&
+      priority !== task.priority
+    ) {
       if (validPriors.includes(priority)) {
         from.priority = task.priority;
         to.priority = priority;
+        changes.push('priority');
         task.priority = priority;
       }
     }
@@ -228,50 +285,80 @@ const updateTask = async (req, res) => {
     ) {
       from.type = task.type;
       to.type = type;
+      changes.push('type');
       task.type = type;
     }
 
-    if (deadline) {
+    if (
+      (isManager || isLeader) &&
+      deadline
+    ) {
       const newDeadline = new Date(deadline);
       const newStartDate = startDate ? new Date(startDate) : task.startDate;
-      if (newDeadline > newStartDate && newDeadline !== task.deadline) {
+      if (
+        newDeadline > newStartDate &&
+        newDeadline.getTime() != task.deadline.getTime()
+      ) {
         from.deadline = task.deadline.toISOString();
         to.deadline = newDeadline.toISOString();
+        changes.push('deadline');
         task.deadline = newDeadline;
       }
     }
 
-    if (startDate) {
+    if (
+      (isManager || isLeader) &&
+      startDate
+    ) {
       const newStartDate = new Date(startDate);
-      if (newStartDate < task.deadline && newStartDate !== task.startDate) {
+      if (
+        newStartDate < task.deadline &&
+        newStartDate.getTime() !== task.startDate.getTime()
+      ) {
         from.startDate = task.startDate.toISOString();
         to.startDate = newStartDate.toISOString();
+        changes.push('startDate');
         task.startDate = newStartDate;
       }
     }
 
-    if (endDate) {
+    if (
+      (isManager || isLeader) &&
+      endDate
+    ) {
       const newEndDate = new Date(endDate);
-      const newStartDate = startDate ? new Date(startDate) : task.startDate;
-      if (newEndDate > newStartDate && newEndDate !== task?.endDate) {
-        from.endDate = task.endDate.toISOString();
+      if (
+        newEndDate > task.startDate &&
+        newEndDate.getTime() !== task?.endDate?.getTime()
+      ) {
+        from.endDate = task?.endDate?.toISOString() || '';
         to.endDate = newEndDate.toISOString();
+        changes.push('endDate');
         task.endDate = newEndDate;
       }
     }
 
-    if (description && description !== task.description) {
+    if (
+      (isManager || isLeader) &&
+      description &&
+      description !== task.description
+    ) {
       from.description = task.description;
       to.description = description;
+      changes.push('description');
       task.description = description;
     }
 
-    if (assignee && assignee !== task.assignee) {
+    if (
+      (isManager || isLeader) &&
+      assignee
+    ) {
       const current = await Users.findById(task.assignee);
       const validUser = await Users.findById(assignee);
-      if (validUser) {
-        from.assignee = `${task.assignee} (${current.username})`;
-        to.assignee = `${assignee} (${validUser.username})`;
+      if (validUser && validUser.username !== current.username) {
+        from.assignee = current.username;
+        to.assignee = validUser.username;
+        changes.push('assignee');
         task.assignee = validUser._id;
       }
     }
@@ -282,6 +369,7 @@ const updateTask = async (req, res) => {
           if (isManager || isLeader) {
             from.status = task.status;
             to.status = status;
+            changes.push('status');
             task.status = status;
           }
           break;
@@ -294,6 +382,7 @@ const updateTask = async (req, res) => {
           ) {
             from.status = task.status;
             to.status = status;
+            changes.push('status');
             task.status = status;
           }
           break;
@@ -305,10 +394,22 @@ const updateTask = async (req, res) => {
           ) {
             from.status = task.status;
             to.status = status;
+            changes.push('status');
             task.status = status;
           }
           break;
         case 'reopen':
+          if (
+            isManager ||
+            isLeader ||
+            task.status === 'review'
+          ) {
+            from.status = task.status;
+            to.status = status;
+            changes.push('status');
+            task.status = status;
+          }
+          break;
         case 'done':
           if (
             isManager ||
@@ -318,6 +419,7 @@ const updateTask = async (req, res) => {
             from = { status: task.status };
             to = { status: status };
             actionType = 'complete';
+            changes.push('status');
             task.status = status;
           }
           break;
@@ -331,12 +433,17 @@ const updateTask = async (req, res) => {
             from = { status: task.status };
             to = { status: status };
             actionType = 'cancel';
+            changes.push('status');
             task.status = status;
           }
           break;
         default:
           break;
       }
+    }
+
+    if (changes.length === 0) {
+      return res.status(200).json({ message: 'No changes were made' });
     }
 
     const activity = new Activities({
@@ -348,8 +455,7 @@ const updateTask = async (req, res) => {
       }
     })
 
-    activity.markModified('from');
-    activity.markModified('to');
+    activity.markModified('action');
     await activity.save();
 
     if (task.activities?.length > 0) {
@@ -374,7 +480,7 @@ const updateTask = async (req, res) => {
     newTask.activities = undefined;
 
     return res.status(201).json({
-      message: 'Updated task successfully',
+      message: `Updated fields: ${changes.join(', ')}`,
       task: newTask
     });
 
@@ -468,9 +574,6 @@ const getTaskActivities = async (req, res) => {
 
     return res.status(200).json({
       taskId: task._id,
-      stageId: stage._id,
-      projectId: project._id,
-      projectCode: project.code,
       activities: task.activities
     });
 
@@ -582,6 +685,7 @@ const deleteTask = async (req, res) => {
 };
 
 module.exports = {
+  getAllTasks,
   addNewTask,
   updateTask,
   getTaskDetails,

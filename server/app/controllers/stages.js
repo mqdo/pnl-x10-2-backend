@@ -6,127 +6,9 @@ const Projects = require('../models/Projects');
 const Stages = require('../models/Stages');
 const Tasks = require('../models/Tasks');
 const Activities = require('../models/Activities');
-const isDate = require('../../config/isDate');
-const xlsxDateToJsDate = require('../../config/xlsxDateToJsDate');
-
-const pipelines = (userId = '', page = 1, limit = 10, name = '') => {
-  const matchUserId = [
-    {
-      '$match': { 'members.data': userId }
-    }
-  ];
-  const populateStages = [
-    {
-      '$lookup': {
-        from: 'stages',
-        localField: 'stages',
-        foreignField: '_id',
-        as: 'stages'
-      }
-    }
-  ];
-  const sortProjects = [
-    {
-      '$sort': {
-        'createdDate': -1
-      }
-    }
-  ];
-  const unwindStages = [
-    {
-      '$unwind': '$stages'
-    }
-  ];
-  const selectFields = [
-    {
-      '$project': {
-        'stages.tasks': 0
-      }
-    }
-  ];
-  const groupAndCount = [
-    {
-      '$group': {
-        '_id': null,
-        count: {
-          '$sum': 1
-        },
-        stages: {
-          '$push': '$stages'
-        }
-      }
-    }
-  ];
-  const filterByName = [
-    {
-      '$match': {
-        'stages.name': {
-          '$regex': name,
-          '$options': 'i'
-        }
-      }
-    }
-  ];
-  const paginate = [
-    {
-      '$skip': limit * (page - 1)
-    },
-    {
-      '$limit': limit
-    }
-  ];
-  const sortStages = [
-    {
-      '$sort': {
-        'stages.endDateActual': -1
-      }
-    }
-  ]
-  const groupWithPagination = [
-    {
-      '$group': {
-        '_id': null,
-        'stages': {
-          '$addToSet': '$stages'
-        },
-        'currentPage': {
-          '$first': page
-        },
-        'total': {
-          '$first': '$count'
-        }
-      }
-    }
-  ];
-  const resultWithTotalPages = [
-    {
-      '$project': {
-        '_id': 0,
-        stages: 1,
-        currentPage: 1,
-        total: 1,
-        totalPages: {
-          '$ceil': {
-            '$divide': ['$total', limit]
-          }
-        }
-      }
-    }
-  ]
-  return {
-    matchUserId,
-    populateStages,
-    sortProjects,
-    unwindStages,
-    selectFields,
-    filterByName,
-    groupAndCount,
-    paginate,
-    sortStages,
-    groupWithPagination,
-    resultWithTotalPages
-  }
-};
+const isDate = require('../utils/isDate');
+const xlsxDateToJsDate = require('../utils/xlsxDateToJsDate');
+const pipelines = require('../utils/pipelines');
 
 exports.searchStages = async (req, res) => {
   let { name = '', page, limit } = req.query;
@@ -886,9 +768,9 @@ exports.downloadTasksList = async (req, res) => {
         '',
         task.assignee.username,
         task.createdBy.username,
-        task.createdDate,
-        task.startDate,
-        task.deadline,
+        task.createdDate.toISOString(),
+        task.startDate.toISOString(),
+        task.deadline.toISOString(),
         task.endDate || '',
         task.status
       ])
@@ -956,6 +838,7 @@ exports.uploadTasksList = async (req, res) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const validStatuses = ['open', 'inprogress', 'review', 'reopen', 'done', 'cancel'];
+      const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
 
       const title = row[0];
       const assignee = project?.members.find((member) => member?.data.equals(row[1])) ? new ObjectId(row[1]) : undefined;
@@ -963,14 +846,16 @@ exports.uploadTasksList = async (req, res) => {
       const deadline = isDate(xlsxDateToJsDate(row[3])) ? new Date(xlsxDateToJsDate(row[3])) : undefined;
       const endDate = isDate(xlsxDateToJsDate(row[4])) ? xlsxDateToJsDate(row[4]) : undefined;
       const status = row[5] ? validStatuses.find((el) => el === row[5].replace(/\s+/g, '').toLowerCase()) : 'open';
+      const type = row[6] === 'assignment' || row[6] === 'issue' ? row[6] : 'assignment';
+      const priority = row[7] ? validPriors.find((el) => el === row[7].toLowerCase()) : 'medium';
 
       const validDates = startDate && deadline && deadline > startDate && (endDate ? endDate > startDate : true);
 
       if (title && assignee && validDates) {
         const task = new Tasks({
           title,
-          type: 'assignment',
-          priority: 'medium',
+          type,
+          priority,
           startDate,
           deadline,
           description: '',
@@ -992,8 +877,7 @@ exports.uploadTasksList = async (req, res) => {
           }
         })
 
-        activity.markModified('from');
-        activity.markModified('to');
+        activity.markModified('action');
         await activity.save();
 
         task.activities.push(activity._id);
