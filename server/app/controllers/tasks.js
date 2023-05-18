@@ -11,7 +11,7 @@ const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
 
 const getAllTasks = async (req, res) => {
   try {
-    const userId = req?.user?.id;
+    const userId = new ObjectId(req?.user?.id);
     const {
       matchUserId,
       populateStages,
@@ -198,6 +198,7 @@ const updateTask = async (req, res) => {
     let actionType = 'update';
     let from = {};
     let to = {};
+    let changes = [];
 
     const task = await Tasks.findById(id);
     if (!task) {
@@ -242,6 +243,7 @@ const updateTask = async (req, res) => {
     ) {
       from.title = task.title;
       to.title = title;
+      changes.push('title');
       task.title = title;
     }
 
@@ -253,6 +255,7 @@ const updateTask = async (req, res) => {
       if (validPriors.includes(priority)) {
         from.priority = task.priority;
         to.priority = priority;
+        changes.push('priority');
         task.priority = priority;
       }
     }
@@ -264,6 +267,7 @@ const updateTask = async (req, res) => {
     ) {
       from.type = task.type;
       to.type = type;
+      changes.push('type');
       task.type = type;
     }
 
@@ -279,6 +283,7 @@ const updateTask = async (req, res) => {
       ) {
         from.deadline = task.deadline.toISOString();
         to.deadline = newDeadline.toISOString();
+        changes.push('deadline');
         task.deadline = newDeadline;
       }
     }
@@ -294,6 +299,7 @@ const updateTask = async (req, res) => {
       ) {
         from.startDate = task.startDate.toISOString();
         to.startDate = newStartDate.toISOString();
+        changes.push('startDate');
         task.startDate = newStartDate;
       }
     }
@@ -309,6 +315,7 @@ const updateTask = async (req, res) => {
       ) {
         from.endDate = task?.endDate?.toISOString() || '';
         to.endDate = newEndDate.toISOString();
+        changes.push('endDate');
         task.endDate = newEndDate;
       }
     }
@@ -320,6 +327,7 @@ const updateTask = async (req, res) => {
     ) {
       from.description = task.description;
       to.description = description;
+      changes.push('description');
       task.description = description;
     }
 
@@ -333,6 +341,7 @@ const updateTask = async (req, res) => {
       if (validUser) {
         from.assignee = current.username;
         to.assignee = validUser.username;
+        changes.push('assignee');
         task.assignee = validUser._id;
       }
     }
@@ -343,6 +352,7 @@ const updateTask = async (req, res) => {
           if (isManager || isLeader) {
             from.status = task.status;
             to.status = status;
+            changes.push('status');
             task.status = status;
           }
           break;
@@ -355,6 +365,7 @@ const updateTask = async (req, res) => {
           ) {
             from.status = task.status;
             to.status = status;
+            changes.push('status');
             task.status = status;
           }
           break;
@@ -366,6 +377,7 @@ const updateTask = async (req, res) => {
           ) {
             from.status = task.status;
             to.status = status;
+            changes.push('status');
             task.status = status;
           }
           break;
@@ -375,6 +387,9 @@ const updateTask = async (req, res) => {
             isLeader ||
             task.status === 'review'
           ) {
+            from.status = task.status;
+            to.status = status;
+            changes.push('status');
             task.status = status;
           }
           break;
@@ -387,6 +402,7 @@ const updateTask = async (req, res) => {
             from = { status: task.status };
             to = { status: status };
             actionType = 'complete';
+            changes.push('status');
             task.status = status;
           }
           break;
@@ -400,12 +416,17 @@ const updateTask = async (req, res) => {
             from = { status: task.status };
             to = { status: status };
             actionType = 'cancel';
+            changes.push('status');
             task.status = status;
           }
           break;
         default:
           break;
       }
+    }
+
+    if (changes.length === 0) {
+      return res.status(200).json({ message: 'No changes were made' });
     }
 
     const activity = new Activities({
@@ -442,7 +463,7 @@ const updateTask = async (req, res) => {
     newTask.activities = undefined;
 
     return res.status(201).json({
-      message: 'Updated task successfully',
+      message: `Updated fields: ${changes.join(', ')}`,
       task: newTask
     });
 
