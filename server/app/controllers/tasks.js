@@ -28,7 +28,7 @@ const getAllTasks = async (req, res) => {
 
     const tasks = await Projects.aggregate([
       // populate project.stages and sort projects
-      // ...matchUserId,
+      ...matchUserId,
       ...populateStages,
       ...sortProjects,
       // create separate documents for each stage and populate stage.tasks

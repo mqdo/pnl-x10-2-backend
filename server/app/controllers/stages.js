@@ -768,9 +768,9 @@ exports.downloadTasksList = async (req, res) => {
         '',
         task.assignee.username,
         task.createdBy.username,
-        task.createdDate,
-        task.startDate,
-        task.deadline,
+        task.createdDate.toISOString(),
+        task.startDate.toISOString(),
+        task.deadline.toISOString(),
         task.endDate || '',
         task.status
       ])
@@ -838,6 +838,7 @@ exports.uploadTasksList = async (req, res) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const validStatuses = ['open', 'inprogress', 'review', 'reopen', 'done', 'cancel'];
+      const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
 
       const title = row[0];
       const assignee = project?.members.find((member) => member?.data.equals(row[1])) ? new ObjectId(row[1]) : undefined;
@@ -845,14 +846,16 @@ exports.uploadTasksList = async (req, res) => {
       const deadline = isDate(xlsxDateToJsDate(row[3])) ? new Date(xlsxDateToJsDate(row[3])) : undefined;
       const endDate = isDate(xlsxDateToJsDate(row[4])) ? xlsxDateToJsDate(row[4]) : undefined;
       const status = row[5] ? validStatuses.find((el) => el === row[5].replace(/\s+/g, '').toLowerCase()) : 'open';
+      const type = row[6] === 'assignment' || row[6] === 'issue' ? row[6] : 'assignment';
+      const priority = row[7] ? validPriors.find((el) => el === row[7].toLowerCase()) : 'medium';
 
       const validDates = startDate && deadline && deadline > startDate && (endDate ? endDate > startDate : true);
 
       if (title && assignee && validDates) {
         const task = new Tasks({
           title,
-          type: 'assignment',
-          priority: 'medium',
+          type,
+          priority,
           startDate,
           deadline,
           description: '',
@@ -874,8 +877,7 @@ exports.uploadTasksList = async (req, res) => {
           }
         })
 
-        activity.markModified('from');
-        activity.markModified('to');
+        activity.markModified('action');
         await activity.save();
 
         task.activities.push(activity._id);
