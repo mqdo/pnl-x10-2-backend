@@ -7,6 +7,7 @@ const {
   deleteComment
 } = require("../controllers/comments")
 const {
+  getAllTasks,
   addNewTask,
   updateTask,
   getTaskDetails,
@@ -15,6 +16,7 @@ const {
   deleteTask
 } = require('../controllers/tasks.js');
 
+router.get('/all', getAllTasks);
 router.get('/details/:id', getTaskDetails);
 router.post('/new', addNewTask);
 router.post('/update/:id', updateTask);

@@ -47,7 +47,13 @@ const addComment = async (req, res) => {
 
     const savedComment = await comment.save();
 
-    task.comments.push(savedComment);
+    task.comments.push(savedComment._id);
+
+    const newComment = await Comment.findById(savedComment._id)
+      .populate({
+        path: "commenter",
+        select: "fullName username email avatar _id",
+      });
 
     const activity = new Activities({
       userId,
@@ -55,7 +61,7 @@ const addComment = async (req, res) => {
         actionType: 'comment',
         from: {},
         to: {
-          comment: comment
+          comment: newComment
         }
       }
     })

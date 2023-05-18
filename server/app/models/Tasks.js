@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const generateCode = require('../../config/generateCode.js');
+const generateCode = require('../utils/generateCode.js');
 
 const taskSchema = new Schema({
     code: {

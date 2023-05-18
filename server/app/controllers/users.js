@@ -7,8 +7,8 @@ const Projects = require('../models/Projects.js');
 const Stages = require('../models/Stages.js');
 const Tasks = require('../models/Tasks.js');
 const Comments = require('../models/Comments.js');
-const isEmail = require('../../config/isEmail.js');
-const isDate = require('../../config/isDate.js');
+const isEmail = require('../utils/isEmail.js');
+const isDate = require('../utils/isDate.js');
 
 const basicInfo = {
   fullName: 1,

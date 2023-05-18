@@ -5,8 +5,57 @@ const Projects = require('../models/Projects.js');
 const Stages = require('../models/Stages.js');
 const Tasks = require('../models/Tasks.js');
 const Activities = require('../models/Activities.js');
+const pipelines = require('../utils/pipelines.js');
 
 const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
+
+const getAllTasks = async (req, res) => {
+  try {
+    const userId = req?.user?.id;
+    const {
+      matchUserId,
+      populateStages,
+      sortProjects,
+      unwindStages,
+      populateTasks,
+      unwindTasks,
+      lookupTask,
+      addTaskFields,
+      removeTaskFields,
+      groupTasks,
+      taskResults
+    } = pipelines(userId);
+
+    const tasks = await Projects.aggregate([
+      // populate project.stages and sort projects
+      // ...matchUserId,
+      ...populateStages,
+      ...sortProjects,
+      // create separate documents for each stage and populate stage.tasks
+      ...unwindStages,
+      ...populateTasks,
+      // create separate documents for each task and add/remove its fields
+      ...unwindTasks,
+      ...lookupTask,
+      ...addTaskFields,
+      ...removeTaskFields,
+      // group them together and return final results
+      ...groupTasks,
+      ...taskResults
+    ]);
+
+    if (tasks.length === 0) {
+      return res.status(404).json({ message: 'No tasks were found' });
+    }
+
+    const results = tasks[0];
+
+    return res.status(200).json({ ...results });
+  } catch (err) {
+    console.error(err);
+    return res.status(400).json({ message: err.message || 'Bad request' });
+  }
+}
 
 const addNewTask = async (req, res) => {
   const {
@@ -598,6 +647,7 @@ const deleteTask = async (req, res) => {
 };
 
 module.exports = {
+  getAllTasks,
   addNewTask,
   updateTask,
   getTaskDetails,
