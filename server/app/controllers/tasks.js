@@ -333,12 +333,11 @@ const updateTask = async (req, res) => {
 
     if (
       (isManager || isLeader) &&
-      assignee &&
-      assignee !== task.assignee
+      assignee
     ) {
       const current = await Users.findById(task.assignee);
       const validUser = await Users.findById(assignee);
-      if (validUser) {
+      if (validUser && validUser.username !== current.username) {
         from.assignee = current.username;
         to.assignee = validUser.username;
         changes.push('assignee');
