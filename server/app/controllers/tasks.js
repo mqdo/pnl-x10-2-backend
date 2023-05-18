@@ -1,4 +1,5 @@
 const ObjectId = require('mongoose').Types.ObjectId;
+const nodemailer = require('nodemailer');
 
 const Users = require('../models/Users.js');
 const Projects = require('../models/Projects.js');
@@ -6,6 +7,23 @@ const Stages = require('../models/Stages.js');
 const Tasks = require('../models/Tasks.js');
 const Activities = require('../models/Activities.js');
 const pipelines = require('../utils/pipelines.js');
+
+let transporter = nodemailer.createTransport({
+  host: '',
+  port: 587,
+  secure: false,
+  auth: {
+    user: '',
+    pass: ''
+  }
+});
+
+let mailOptions = {
+  from: '',
+  to: '',
+  subject: '',
+  text: ''
+};
 
 const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
 
