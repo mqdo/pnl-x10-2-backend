@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const Users = require('../models/Users.js');
-const isEmail = require('../../config/isEmail.js');
+const isEmail = require('../utils/isEmail.js');
 
 const secretKey = process.env.JWT_SECRET_KEY;
 
