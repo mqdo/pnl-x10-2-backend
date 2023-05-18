@@ -11,10 +11,10 @@ const pipelines = require('../utils/pipelines.js');
 let transporter = nodemailer.createTransport({
   host: '',
   port: 587,
-  secure: false, 
+  secure: false,
   auth: {
-      user: '',
-      pass: ''
+    user: '',
+    pass: ''
   }
 });
 
