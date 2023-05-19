@@ -8,6 +8,7 @@ const {
 } = require("../controllers/comments")
 const {
   getAllTasks,
+  getAllRelatedTasks,
   addNewTask,
   updateTask,
   getTaskDetails,
@@ -17,6 +18,7 @@ const {
 } = require('../controllers/tasks.js');
 
 router.get('/all', getAllTasks);
+router.get('/related', getAllRelatedTasks);
 router.get('/details/:id', getTaskDetails);
 router.post('/new', addNewTask);
 router.post('/update/:id', updateTask);
