@@ -7,7 +7,7 @@ const projectsSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    default: generateCode
+    default: () => generateCode('prj')
   },
   name: {
     type: String,
@@ -60,7 +60,7 @@ const projectsSchema = new mongoose.Schema({
 
 projectsSchema.pre('save', (next) => {
   if (!this.code) {
-    this.code = generateCode();
+    this.code = generateCode('prj');
   }
   next();
 })
