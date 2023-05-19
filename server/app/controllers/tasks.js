@@ -24,7 +24,7 @@ let mailOptions = {
   from: '',
   to: '',
   subject: '',
-  text: ''
+  text: ' '
 };
 
 
