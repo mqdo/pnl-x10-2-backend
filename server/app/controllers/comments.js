@@ -122,6 +122,7 @@ const deleteComment = async (req, res) => {
     return res.status(400).json({ message: error.message || "server error" });
   }
 };
+
 const updateComment = async (req, res) => {
   try {
     const { content } = req.body;
