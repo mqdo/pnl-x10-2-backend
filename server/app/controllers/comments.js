@@ -47,7 +47,13 @@ const addComment = async (req, res) => {
 
     const savedComment = await comment.save();
 
-    task.comments.push(savedComment);
+    task.comments.push(savedComment._id);
+
+    const newComment = await Comment.findById(savedComment._id)
+      .populate({
+        path: "commenter",
+        select: "fullName username email avatar _id",
+      });
 
     const activity = new Activities({
       userId,
@@ -55,15 +61,18 @@ const addComment = async (req, res) => {
         actionType: 'comment',
         from: {},
         to: {
-          comment: comment
+          comment: newComment
         }
       }
     })
 
+    activity.markModified('action');
+    await activity.save();
+
     if (task.activities?.length > 0) {
-      task.activities.unshift(activity);
+      task.activities.unshift(activity._id);
     } else {
-      task.activities.push(activity);
+      task.activities.push(activity._id);
     }
 
     await task.save();
@@ -123,20 +132,4 @@ const deleteComment = async (req, res) => {
   }
 };
 
-const updateComment = async (req, res) => {
-  try {
-    const { content } = req.body;
-    const comment = await Comments.findByIdAndUpdate(req.params.commentid, { content }, { new: true }); // {new:true} nó sẽ trả về commnet sau khi được cập nhật
-
-    if (!comment) {
-      return res.status(404).json({ message: 'Comment not found' });
-    }
-
-    res.json(comment);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-};
-
-module.exports = { addComment, getComments, deleteComment,updateComment };
+module.exports = { addComment, getComments, deleteComment };

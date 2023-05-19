@@ -1,13 +1,13 @@
 const mongoose = require('mongoose');
 
-const generateCode = require('../../config/generateCode.js');
+const generateCode = require('../utils/generateCode.js');
 
 const projectsSchema = new mongoose.Schema({
   code: {
     type: String,
     required: true,
     unique: true,
-    default: generateCode
+    default: () => generateCode('prj')
   },
   name: {
     type: String,
@@ -60,7 +60,7 @@ const projectsSchema = new mongoose.Schema({
 
 projectsSchema.pre('save', (next) => {
   if (!this.code) {
-    this.code = generateCode();
+    this.code = generateCode('prj');
   }
   next();
 })

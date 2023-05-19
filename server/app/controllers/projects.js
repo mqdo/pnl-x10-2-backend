@@ -2,8 +2,8 @@ const ObjectId = require('mongoose').Types.ObjectId;
 
 const Projects = require('../models/Projects.js');
 const Users = require('../models/Users.js');
-const memberRoles = require('../../config/memberRoles.js');
-const isDate = require('../../config/isDate.js');
+const memberRoles = require('../utils/memberRoles.js');
+const isDate = require('../utils/isDate.js');
 
 const allowedStatuses = ['preparing', 'ongoing', 'suspended', 'completed'];
 // const allowedRoles = ['manager', 'leader', 'member', 'supervisor'];
@@ -24,10 +24,12 @@ const getAllProjects = async (req, res) => {
     const total = await Projects.countDocuments({ 'members.data': userId });
     let projects = await Projects.find({
       'members.data': userId
-    }, {
-      members: 0,
-      stages: 0
-    })
+    }, { stages: 0 })
+      .populate({
+        path: 'members.data',
+        options: { allowEmptyArray: true },
+        select: '_id fullName email avatar username'
+      })
       .sort({ createdDate: -1 })
       .limit(limit)
       .skip(limit * (page - 1))
@@ -126,9 +128,13 @@ const searchProjects = async (req, res) => {
         'members.id': userId,
         'status': status
       }, {
-        members: 0,
         stages: 0
       })
+        .populate({
+          path: 'members.data',
+          options: { allowEmptyArray: true },
+          select: '_id fullName email avatar username'
+        })
         .sort({ createdDate: -1 })
         .limit(limit)
         .skip(limit * (page - 1))
@@ -164,11 +170,17 @@ const createNewProject = async (req, res) => {
       role: 'manager'
     });
     await project.save();
-    project.members = undefined;
-    project.stages = undefined;
+    
+    const newProject = await Projects.findById(project._id)
+      .populate({
+        path: 'members.data',
+        options: { allowEmptyArray: true },
+        select: '_id fullName email avatar username'
+      });
+
     return res.status(201).json({
       message: 'Project created successfully',
-      project
+      project: newProject
     });
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Bad request' });
@@ -203,11 +215,17 @@ const updateProject = async (req, res) => {
       project.status = status;
     }
     await project.save();
-    project.members = undefined;
-    project.stages = undefined;
-    return res.status(200).json({
+
+    const newProject = await Projects.findById(project._id)
+      .populate({
+        path: 'members.data',
+        options: { allowEmptyArray: true },
+        select: '_id fullName email avatar username'
+      });
+
+    return res.status(201).json({
       message: 'Project updated successfully',
-      project
+      project: newProject
     });
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Bad request' });
