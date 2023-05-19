@@ -118,6 +118,16 @@ const pipelines = (userId = '', page = 1, limit = 10, name = '') => {
       '$unwind': '$stages.tasks'
     }
   ];
+  const matchUsers = [
+    {
+      '$match': {
+        '$or': [
+          { 'stages.tasks.assignee': userId },
+          { 'stages.tasks.createdBy': userId }
+        ]
+      }
+    }
+  ]
   const lookupTask = [
     {
       '$lookup': {
@@ -257,6 +267,7 @@ const pipelines = (userId = '', page = 1, limit = 10, name = '') => {
     resultWithTotalPages,
     populateTasks,
     unwindTasks,
+    matchUsers,
     lookupTask,
     addTaskFields,
     removeTaskFields,
