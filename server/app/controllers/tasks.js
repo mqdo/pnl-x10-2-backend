@@ -22,7 +22,7 @@ let mailOptions = {
   from: '',
   to: '',
   subject: '',
-  text: ''
+  text: ' '
 };
 
 const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];

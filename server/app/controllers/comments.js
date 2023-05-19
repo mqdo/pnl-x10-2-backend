@@ -131,5 +131,19 @@ const deleteComment = async (req, res) => {
     return res.status(400).json({ message: error.message || "server error" });
   }
 };
+const updateComment = async (req, res) => {
+  try {
+    const { content } = req.body;
+    const comment = await Comment.findByIdAndUpdate(req.params.commentid, { content }, { new: true }); // {new:true} nó sẽ trả về commnet sau khi được cập nhật
 
-module.exports = { addComment, getComments, deleteComment };
+    if (!comment) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+
+    res.json(comment);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+module.exports = { addComment, getComments, deleteComment,updateComment };
