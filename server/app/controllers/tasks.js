@@ -1,6 +1,6 @@
 const ObjectId = require('mongoose').Types.ObjectId;
 const nodemailer = require('nodemailer');
-
+require('dotenv').config();
 const Users = require('../models/Users.js');
 const Projects = require('../models/Projects.js');
 const Stages = require('../models/Stages.js');
@@ -8,22 +8,16 @@ const Tasks = require('../models/Tasks.js');
 const Activities = require('../models/Activities.js');
 const pipelines = require('../utils/pipelines.js');
 
-let transporter = nodemailer.createTransport({
-  host: '',
-  port: 587,
-  secure: false,
+
+var transport = nodemailer.createTransport({
+  host: "sandbox.smtp.mailtrap.io",
+  port: 2525,
   auth: {
-    user: '',
-    pass: ''
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASS
   }
 });
 
-let mailOptions = {
-  from: '',
-  to: '',
-  subject: '',
-  text: ' '
-};
 
 const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
 
@@ -235,11 +229,23 @@ const addNewTask = async (req, res) => {
 
     newTask.comments = undefined;
     newTask.activities = undefined;
+    const mailOptions = {
+      from: 'pnl.x10.2@gmail.com',
+      to: newTask.assignee.email,
+      subject: 'New task created',
+      text: `A new task has been created.`
+    };
+    transport.sendMail(mailOptions);
 
+    
+    
     return res.status(201).json({
       message: 'Created new task successfully',
       task: newTask
     })
+    // gửi email dến email của user
+    
+
 
   } catch (err) {
     console.log(err);
@@ -528,12 +534,18 @@ const updateTask = async (req, res) => {
 
     newTask.comments = undefined;
     newTask.activities = undefined;
-
+const mailOptions = {
+      from: 'pnl.x10.2@gmail.com',
+      to: newTask.assignee.email ,
+      subject: 'Updat Task e',
+      text: `A task has been updated.`
+    };
+    transport.sendMail(mailOptions);
     return res.status(201).json({
       message: `Updated fields: ${changes.join(', ')}`,
       task: newTask
     });
-
+    
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Bad request' });
   }
@@ -723,7 +735,13 @@ const deleteTask = async (req, res) => {
     }
 
     const deleted = await Tasks.findByIdAndDelete(id);
-
+    const mailOptions = {
+      from: 'pnl.x10.2@gmail.com',
+      to: newTask.assignee.email,
+      subject: 'Task deleted',
+      text: `task has been deleted.`
+    };
+    transport.sendMail(mailOptions);
     return res.status(200).json({
       message: 'Task removed successfully'
     })
