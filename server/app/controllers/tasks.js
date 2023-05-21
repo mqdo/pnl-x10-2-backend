@@ -536,7 +536,7 @@ const updateTask = async (req, res) => {
     newTask.activities = undefined;
 const mailOptions = {
       from: 'pnl.x10.2@gmail.com',
-      to: newTask.assignee.email,
+      to: newTask.assignee.email ,
       subject: 'Updat Task e',
       text: `A task has been updated.`
     };
