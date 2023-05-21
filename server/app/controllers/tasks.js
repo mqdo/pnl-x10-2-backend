@@ -554,7 +554,7 @@ const getTaskDetails = async (req, res) => {
     }
 
     const project = await Projects.findOne({
-      'members.data': userId,
+      'members.data': userId ,
       'stages': { '$in': [stage._id] }
     });
 
