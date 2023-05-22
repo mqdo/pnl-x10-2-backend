@@ -305,8 +305,9 @@ const updateTask = async (req, res) => {
       member?.role === 'leader'
     ));
     let isCreator = task.createdBy.equals(userId);
+    let isAssignee = task.assignee.equals(userId);
 
-    if ((!isManager && !isLeader) && !isCreator) {
+    if ((!isManager && !isLeader) && !isCreator && !isAssignee) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
