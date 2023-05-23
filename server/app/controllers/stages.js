@@ -1,6 +1,7 @@
 const XLSX = require('xlsx');
 const ObjectId = require('mongoose').Types.ObjectId;
 const fs = require('fs');
+require('dotenv').config();
 
 const Projects = require('../models/Projects');
 const Stages = require('../models/Stages');
@@ -765,7 +766,7 @@ exports.downloadTasksList = async (req, res) => {
         index + 1,
         task.code,
         task.title,
-        '',
+        `${process.env.CLIENT_URL}/project/${project._id}/${stage._id}/${task._id}`,
         task.assignee.username,
         task.createdBy.username,
         task.createdDate.toISOString(),
