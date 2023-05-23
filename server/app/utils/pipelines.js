@@ -1,4 +1,13 @@
-const pipelines = (userId = '', page = 1, limit = 10, name = '') => {
+const pipelines = (
+  userId = '',
+  page = 1,
+  limit = 10,
+  name = '.*',
+  title = '.*',
+  status = '.*',
+  assigneeId = '',
+  sort = ''
+) => {
   const matchUserId = [
     {
       '$match': { 'members.data': userId }
@@ -118,6 +127,92 @@ const pipelines = (userId = '', page = 1, limit = 10, name = '') => {
       '$unwind': '$stages.tasks'
     }
   ];
+  const unwindTasksAgain = [
+    {
+      '$unwind': '$tasks'
+    }
+  ]
+  const filterTasks = [
+    {
+      '$match': {
+        '$and': [
+          {
+            'stages.tasks.title': {
+              '$regex': title,
+              '$options': 'i'
+            }
+          },
+          {
+            'stages.tasks.status': {
+              '$regex': status,
+              '$options': 'i'
+            }
+          },
+          assigneeId ? {
+            'stages.tasks.assignee': assigneeId
+          } : {}
+        ]
+      }
+    }
+  ];
+  // prioAsc prioDesc deadlineAsc deadlineDesc
+  const addSortField = [
+    {
+      '$addFields': {
+        'stages.tasks.sortId': {
+          $switch: {
+            branches: [
+              { case: { $eq: ['$stages.tasks.priority', 'highest'] }, then: 0 },
+              { case: { $eq: ['$stages.tasks.priority', 'high'] }, then: 1 },
+              { case: { $eq: ['$stages.tasks.priority', 'medium'] }, then: 2 },
+              { case: { $eq: ['$stages.tasks.priority', 'low'] }, then: 3 },
+              { case: { $eq: ['$stages.tasks.priority', 'lowest'] }, then: 4 },
+            ],
+            default: 0,
+          }
+        }
+      }
+    }
+  ];
+  const sortTasks = () => {
+    switch (sort) {
+      case 'prioAsc':
+        return [
+          ...addSortField,
+          {
+            '$sort': {
+              'stages.tasks.sortId': 1
+            }
+          }
+        ];
+      case 'prioDesc':
+        return [
+          ...addSortField,
+          {
+            '$sort': {
+              'stages.tasks.sortId': -1
+            }
+          }
+        ];
+      case 'deadlineAsc':
+        return [
+          {
+            '$sort': {
+              'stages.tasks.deadline': 1
+            }
+          }
+        ];
+      case 'deadlineDesc':
+      default:
+        return [
+          {
+            '$sort': {
+              'stages.tasks.deadline': -1
+            }
+          }
+        ];
+    }
+  };
   const matchUsers = [
     {
       '$match': {
@@ -127,7 +222,7 @@ const pipelines = (userId = '', page = 1, limit = 10, name = '') => {
         ]
       }
     }
-  ]
+  ];
   const lookupTask = [
     {
       '$lookup': {
@@ -252,7 +347,51 @@ const pipelines = (userId = '', page = 1, limit = 10, name = '') => {
         _id: 0
       }
     }
+  ];
+  const groupAndCountTasks = [
+    {
+      '$group': {
+        _id: null,
+        count: {
+          '$sum': 1,
+        },
+        tasks: {
+          $push: '$stages.tasks'
+        }
+      }
+    }
+  ];
+  const groupTasksWithPagination = [
+    {
+      '$group': {
+        _id: null,
+        total: {
+          $first: '$count'
+        },
+        currentPage: {
+          $first: page
+        },
+        tasks: {
+          $push: '$tasks'
+        }
+      }
+    }
   ]
+  const taskResultsWithTotalPages = [
+    {
+      '$project': {
+        tasks: 1,
+        total: 1,
+        currentPage: 1,
+        totalPages: {
+          '$ceil': {
+            '$divide': ['$total', limit]
+          }
+        },
+        _id: 0
+      }
+    }
+  ];
   return {
     matchUserId,
     populateStages,
@@ -267,12 +406,18 @@ const pipelines = (userId = '', page = 1, limit = 10, name = '') => {
     resultWithTotalPages,
     populateTasks,
     unwindTasks,
+    unwindTasksAgain,
+    sortTasks,
+    filterTasks,
     matchUsers,
     lookupTask,
     addTaskFields,
     removeTaskFields,
     groupTasks,
-    taskResults
+    taskResults,
+    groupAndCountTasks,
+    groupTasksWithPagination,
+    taskResultsWithTotalPages
   }
 };
 
