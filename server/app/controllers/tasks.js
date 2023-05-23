@@ -70,8 +70,17 @@ const getAllTasks = async (req, res) => {
 };
 
 const getAllRelatedTasks = async (req, res) => {
+  const {
+    title,
+    status,
+    assignee,
+    page = 1,
+    limit = 10,
+    sort
+  } = req.query;
   try {
     const userId = new ObjectId(req?.user?.id);
+    const assigneeId = assignee ? new ObjectId(assignee) : '';
     const {
       matchUserId,
       populateStages,
@@ -79,15 +88,22 @@ const getAllRelatedTasks = async (req, res) => {
       unwindStages,
       populateTasks,
       unwindTasks,
+      unwindTasksAgain,
       matchUsers,
+      sortTasks,
+      filterTasks,
       lookupTask,
       addTaskFields,
       removeTaskFields,
-      groupTasks,
-      taskResults
-    } = pipelines(userId);
+      groupAndCountTasks,
+      paginate,
+      groupTasksWithPagination,
+      taskResultsWithTotalPages
+    } = pipelines(userId, page, limit, '', title, status, assigneeId, sort);
 
-    const tasks = await Projects.aggregate([
+    const sorted = sortTasks();
+
+    const aggregate = [
       // populate project.stages and sort projects
       ...matchUserId,
       ...populateStages,
@@ -98,13 +114,21 @@ const getAllRelatedTasks = async (req, res) => {
       // create separate documents for each task and add/remove its fields
       ...unwindTasks,
       ...matchUsers,
+      ...sorted,
+      ...filterTasks,
       ...lookupTask,
       ...addTaskFields,
       ...removeTaskFields,
+      // paginate tasks
+      ...groupAndCountTasks,
+      ...unwindTasksAgain,
+      ...paginate,
       // group them together and return final results
-      ...groupTasks,
-      ...taskResults
-    ]);
+      ...groupTasksWithPagination,
+      ...taskResultsWithTotalPages
+    ];
+
+    const tasks = await Projects.aggregate(aggregate);
 
     if (tasks.length === 0) {
       return res.status(404).json({ message: 'No tasks were found' });
@@ -237,14 +261,14 @@ const addNewTask = async (req, res) => {
     };
     transport.sendMail(mailOptions);
 
-    
-    
+
+
     return res.status(201).json({
       message: 'Created new task successfully',
       task: newTask
     })
     // gửi email dến email của user
-    
+
 
 
   } catch (err) {
@@ -535,9 +559,9 @@ const updateTask = async (req, res) => {
 
     newTask.comments = undefined;
     newTask.activities = undefined;
-const mailOptions = {
+    const mailOptions = {
       from: 'pnl.x10.2@gmail.com',
-      to: newTask.assignee.email ,
+      to: newTask.assignee.email,
       subject: 'Updat Task e',
       text: `A task has been updated.`
     };
@@ -546,7 +570,7 @@ const mailOptions = {
       message: `Updated fields: ${changes.join(', ')}`,
       task: newTask
     });
-    
+
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Bad request' });
   }

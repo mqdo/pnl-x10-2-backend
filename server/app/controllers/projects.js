@@ -113,19 +113,23 @@ const searchProjects = async (req, res) => {
           '$options': 'i'
         }
       }, {
-        members: 0,
         stages: 0
       })
+        .populate({
+          path: 'members.data',
+          options: { allowEmptyArray: true },
+          select: '_id fullName email avatar username'
+        })
         .sort({ createdDate: -1 })
         .limit(limit)
         .skip(limit * (page - 1))
     } else if (status) {
       total = await Projects.countDocuments({
-        'members.id': userId,
+        'members.data': userId,
         'status': status
       });
       projects = await Projects.find({
-        'members.id': userId,
+        'members.data': userId,
         'status': status
       }, {
         stages: 0
