@@ -5,7 +5,7 @@ const pipelines = (
   name = '.*',
   title = '.*',
   status = '.*',
-  assigneeId = '',
+  assignee = '',
   sort = ''
 ) => {
   const matchUserId = [
@@ -148,8 +148,15 @@ const pipelines = (
               '$options': 'i'
             }
           },
-          assigneeId ? {
-            'stages.tasks.assignee': assigneeId
+          assignee ? {
+            '$or': [
+              {
+                'stages.tasks.assignee.username': { $regex: assignee, $options: 'i' }
+              },
+              {
+                'stages.tasks.assignee.fullName': { $regex: assignee, $options: 'i' }
+              }
+            ]
           } : {}
         ]
       }
@@ -181,7 +188,7 @@ const pipelines = (
           ...addSortField,
           {
             '$sort': {
-              'stages.tasks.sortId': 1
+              'stages.tasks.sortId': -1
             }
           }
         ];
@@ -190,7 +197,7 @@ const pipelines = (
           ...addSortField,
           {
             '$sort': {
-              'stages.tasks.sortId': -1
+              'stages.tasks.sortId': 1
             }
           }
         ];
@@ -198,7 +205,7 @@ const pipelines = (
         return [
           {
             '$sort': {
-              'stages.tasks.deadline': 1
+              'stages.tasks.deadline': -1
             }
           }
         ];
@@ -207,7 +214,7 @@ const pipelines = (
         return [
           {
             '$sort': {
-              'stages.tasks.deadline': -1
+              'stages.tasks.deadline': 1
             }
           }
         ];
