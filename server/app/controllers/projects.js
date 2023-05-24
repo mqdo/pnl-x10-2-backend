@@ -98,53 +98,33 @@ const searchProjects = async (req, res) => {
     let projects = [];
     let total = 0;
     // console.log(userId);
-    if (name) {
-      total = await Projects.countDocuments({
-        'members.data': userId,
-        'name': {
-          '$regex': name,
-          '$options': 'i'
-        }
+    total = await Projects.countDocuments({
+      'members.data': userId,
+      'name': {
+        '$regex': name,
+        '$options': 'i'
+      },
+      'status': status
+    })
+    projects = await Projects.find({
+      'members.data': userId,
+      'name': {
+        '$regex': name,
+        '$options': 'i'
+      },
+      'status': status
+    }, {
+      stages: 0
+    })
+      .populate({
+        path: 'members.data',
+        options: { allowEmptyArray: true },
+        select: '_id fullName email avatar username'
       })
-      projects = await Projects.find({
-        'members.data': userId,
-        'name': {
-          '$regex': name,
-          '$options': 'i'
-        }
-      }, {
-        stages: 0
-      })
-        .populate({
-          path: 'members.data',
-          options: { allowEmptyArray: true },
-          select: '_id fullName email avatar username'
-        })
-        .sort({ createdDate: -1 })
-        .limit(limit)
-        .skip(limit * (page - 1))
-    } else if (status) {
-      total = await Projects.countDocuments({
-        'members.data': userId,
-        'status': status
-      });
-      projects = await Projects.find({
-        'members.data': userId,
-        'status': status
-      }, {
-        stages: 0
-      })
-        .populate({
-          path: 'members.data',
-          options: { allowEmptyArray: true },
-          select: '_id fullName email avatar username'
-        })
-        .sort({ createdDate: -1 })
-        .limit(limit)
-        .skip(limit * (page - 1))
-    } else {
-      return res.status(400).json({ message: 'Query not found' });
-    }
+      .sort({ createdDate: -1 })
+      .limit(limit)
+      .skip(limit * (page - 1));
+      
     return res.status(200).json({
       projects,
       total,
@@ -174,7 +154,7 @@ const createNewProject = async (req, res) => {
       role: 'manager'
     });
     await project.save();
-    
+
     const newProject = await Projects.findById(project._id)
       .populate({
         path: 'members.data',

@@ -80,7 +80,6 @@ const getAllRelatedTasks = async (req, res) => {
   } = req.query;
   try {
     const userId = new ObjectId(req?.user?.id);
-    const assigneeId = assignee ? new ObjectId(assignee) : '';
     const {
       matchUserId,
       populateStages,
@@ -91,15 +90,15 @@ const getAllRelatedTasks = async (req, res) => {
       unwindTasksAgain,
       matchUsers,
       sortTasks,
-      filterTasks,
       lookupTask,
       addTaskFields,
+      filterTasks,
       removeTaskFields,
       groupAndCountTasks,
       paginate,
       groupTasksWithPagination,
       taskResultsWithTotalPages
-    } = pipelines(userId, page, limit, '', title, status, assigneeId, sort);
+    } = pipelines(userId, page, limit, '', title, status, assignee, sort);
 
     const sorted = sortTasks();
 
@@ -115,9 +114,9 @@ const getAllRelatedTasks = async (req, res) => {
       ...unwindTasks,
       ...matchUsers,
       ...sorted,
-      ...filterTasks,
       ...lookupTask,
       ...addTaskFields,
+      ...filterTasks,
       ...removeTaskFields,
       // paginate tasks
       ...groupAndCountTasks,
