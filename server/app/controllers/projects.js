@@ -82,7 +82,7 @@ const getAllProjectsWithDetails = async (req, res) => {
 const searchProjects = async (req, res) => {
   let {
     name = '',
-    status = [],
+    status,
     page,
     limit
   } = req.query;
@@ -104,7 +104,9 @@ const searchProjects = async (req, res) => {
         '$regex': decodeURIComponent(name),
         '$options': 'i'
       },
-      'status': status
+      'status': status || {
+        '$regex': '.*'
+      }
     })
     projects = await Projects.find({
       'members.data': userId,
@@ -112,7 +114,9 @@ const searchProjects = async (req, res) => {
         '$regex': name,
         '$options': 'i'
       },
-      'status': status
+      'status': status || {
+        '$regex': '.*'
+      }
     }, {
       stages: 0
     })
@@ -124,7 +128,7 @@ const searchProjects = async (req, res) => {
       .sort({ createdDate: -1 })
       .limit(limit)
       .skip(limit * (page - 1));
-      
+
     return res.status(200).json({
       projects,
       total,
