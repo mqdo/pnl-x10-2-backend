@@ -8,6 +8,7 @@ const Stages = require('../models/Stages');
 const Tasks = require('../models/Tasks');
 const Activities = require('../models/Activities');
 const isDate = require('../utils/isDate');
+const isEmail = require('../utils/isEmail');
 const xlsxDateToJsDate = require('../utils/xlsxDateToJsDate');
 const pipelines = require('../utils/pipelines');
 
@@ -819,6 +820,11 @@ exports.uploadTasksList = async (req, res) => {
       'members.data': userId,
       'stages': { '$in': [stageId] }
     })
+      .populate({
+        path: 'members.data',
+        options: { allowEmptyArray: true },
+        select: '_id fullName email avatar username'
+      })
     let isMember = project?.members.some((member) => member?.data.equals(userId));
     if (!isMember) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -842,7 +848,17 @@ exports.uploadTasksList = async (req, res) => {
       const validPriors = ['highest', 'high', 'medium', 'low', 'lowest'];
 
       const title = row[0];
-      const assignee = project?.members.find((member) => member?.data.equals(row[1])) ? new ObjectId(row[1]) : undefined;
+      let assignee = undefined;
+      project?.members.forEach((member) => {
+        if (
+          isEmail(row[1]) &&
+          member.data?.email === row[1]
+        ) {
+          assignee = member.data?._id;
+        } else if (member.data?.username === row[1]) {
+          assignee = member.data?._id;
+        }
+      });
       const startDate = isDate(xlsxDateToJsDate(row[2])) ? xlsxDateToJsDate(row[2]) : undefined;
       const deadline = isDate(xlsxDateToJsDate(row[3])) ? new Date(xlsxDateToJsDate(row[3])) : undefined;
       const endDate = isDate(xlsxDateToJsDate(row[4])) ? xlsxDateToJsDate(row[4]) : undefined;
