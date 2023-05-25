@@ -805,6 +805,8 @@ exports.uploadTasksList = async (req, res) => {
   const { id } = req.params;
   const url = req?.file?.path;
 
+  let changes = 0;
+
   if (!id) {
     return res.status(400).json({ message: 'Stage Id is required' });
   }
@@ -904,7 +906,13 @@ exports.uploadTasksList = async (req, res) => {
         stage.tasks.push(task._id);
 
         await stage.save();
+
+        changes++;
       }
+    }
+
+    if (changes === 0) {
+      return res.status(400).json({ message: 'No tasks were added' });
     }
 
     fs.unlinkSync(url);
