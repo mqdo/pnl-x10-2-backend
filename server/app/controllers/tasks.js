@@ -409,7 +409,7 @@ const updateTask = async (req, res) => {
       const newEndDate = new Date(endDate);
       if (
         newEndDate > task.startDate &&
-        newEndDate.getTime() !== task?.endDate?.getTime()
+        (task?.endDate ? newEndDate.getTime() !== task?.endDate?.getTime() : true)
       ) {
         from.endDate = task?.endDate?.toISOString() || '';
         to.endDate = newEndDate.toISOString();
@@ -561,12 +561,12 @@ const updateTask = async (req, res) => {
     const mailOptions = {
       from: 'pnl.x10.2@gmail.com',
       to: newTask.assignee.email,
-      subject: 'Updat Task e',
+      subject: 'Update Task e',
       text: `A task has been updated.`
     };
     transport.sendMail(mailOptions);
     return res.status(201).json({
-      message: `Updated fields: ${changes.join(', ')}`,
+      message: `Updated field(s): ${changes.join(', ')}`,
       task: newTask
     });
 
@@ -758,14 +758,17 @@ const deleteTask = async (req, res) => {
       await stage.save();
     }
 
-    const deleted = await Tasks.findByIdAndDelete(id);
     const mailOptions = {
       from: 'pnl.x10.2@gmail.com',
-      to: newTask.assignee.email,
+      to: task.assignee.email,
       subject: 'Task deleted',
       text: `task has been deleted.`
     };
+
+    await Tasks.findByIdAndDelete(id);
+
     transport.sendMail(mailOptions);
+
     return res.status(200).json({
       message: 'Task removed successfully'
     })
