@@ -82,7 +82,7 @@ const getAllProjectsWithDetails = async (req, res) => {
 const searchProjects = async (req, res) => {
   let {
     name = '',
-    status = '',
+    status = [],
     page,
     limit
   } = req.query;
@@ -101,7 +101,7 @@ const searchProjects = async (req, res) => {
     total = await Projects.countDocuments({
       'members.data': userId,
       'name': {
-        '$regex': name,
+        '$regex': decodeURIComponent(name),
         '$options': 'i'
       },
       'status': status

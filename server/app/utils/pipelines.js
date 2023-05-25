@@ -4,7 +4,7 @@ const pipelines = (
   limit = 10,
   name = '.*',
   title = '.*',
-  status = '.*',
+  status = [],
   assignee = '',
   sort = ''
 ) => {
@@ -144,8 +144,7 @@ const pipelines = (
           },
           {
             'stages.tasks.status': {
-              '$regex': status,
-              '$options': 'i'
+              '$in': status
             }
           },
           assignee ? {
@@ -205,7 +204,7 @@ const pipelines = (
         return [
           {
             '$sort': {
-              'stages.tasks.deadline': -1
+              'stages.tasks.deadline': 1
             }
           }
         ];
@@ -214,7 +213,7 @@ const pipelines = (
         return [
           {
             '$sort': {
-              'stages.tasks.deadline': 1
+              'stages.tasks.deadline': -1
             }
           }
         ];
