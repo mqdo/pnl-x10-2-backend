@@ -142,11 +142,11 @@ const pipelines = (
               '$options': 'i'
             }
           },
-          {
+          status.length > 0 ? {
             'stages.tasks.status': {
               '$in': status
             }
-          },
+          } : {},
           assignee ? {
             '$or': [
               {

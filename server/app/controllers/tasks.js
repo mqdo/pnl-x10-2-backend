@@ -98,7 +98,7 @@ const getAllRelatedTasks = async (req, res) => {
       paginate,
       groupTasksWithPagination,
       taskResultsWithTotalPages
-    } = pipelines(userId, page, limit, '', decodeURIComponent(title), status.split(','), assignee, sort);
+    } = pipelines(userId, page, limit, '', decodeURIComponent(title || ''), status?.split(',') || [], assignee, sort);
 
     const sorted = sortTasks();
 
